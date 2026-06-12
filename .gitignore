@@ -1,15 +1,37 @@
 # Debian packages
 *.deb
 
+# Build artifacts
+*.o
+
 # Compiled llama.cpp build outputs
 llm/llama.cpp-rocm/
 llm/llama.cpp-vulkan/
 
-# llama.cpp source tree (cloned separately)
+# Upstream source trees cloned separately
+llm/flash-attention/
 llm/llama.cpp-src/
+llm/vllm-src/
 
-# Python virtual environment
+# Local benchmark tool checkouts (use installed llama-benchy or uvx instead)
+llama-benchy/
+
+# Python virtual environments and caches
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.egg-info/
+**/*.egg-info/
 llm/rocm-venv/
+llm/vllm-venv/
+
+# Docker runtime data and local service state
+vllm/docker/.data/
+
+# Local scratch artifacts
+/reddit.json
+vllm/docker/bench_llama_benchy_ab_patch.py
 
 # VS Code workspace settings (optional: remove to share settings)
 .vscode/
@@ -20,6 +42,7 @@ Thumbs.db
 
 # Benchmark result logs (contain absolute paths)
 benchmark/results/
+vllm/results/
 
 # Logs and temp files
 *.log

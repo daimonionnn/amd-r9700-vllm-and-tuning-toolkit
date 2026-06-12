@@ -1,0 +1,100 @@
+services:
+  vllm:
+    image: ${VLLM_IMAGE:-aml731/vllm-aiter:v0.20.2}
+    container_name: ${VLLM_CONTAINER_NAME:-vllm-r9700-tp2-aiter-0202}
+    restart: "no"
+    network_mode: host
+    ipc: host
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    volumes:
+      - ${VLLM_HF_CACHE:-./.data/hf-cache}:/data/models
+      - ${VLLM_TUNABLEOP_DIR:-./.data/tunableop}:/tunableop
+      - ${VLLM_TRITON_CACHE_DIR:-./.data/triton-cache}:/root/.triton/cache
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_HOME=/data/models
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0,1}
+      - OMP_NUM_THREADS=${OMP_NUM_THREADS:-2}
+      - VLLM_TARGET_DEVICE=rocm
+      - VLLM_ROCM_USE_AITER=1
+      - VLLM_ROCM_ALLOW_RDNA4_AITER_ATTENTION=1
+      - VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION=1
+      - VLLM_ROCM_USE_AITER_MHA=0
+      - VLLM_ROCM_USE_AITER_PAGED_ATTN=0
+      - VLLM_ROCM_USE_AITER_MOE=0
+      - VLLM_ROCM_USE_AITER_LINEAR=0
+      - FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE
+      - PYTORCH_ALLOC_CONF=expandable_segments:True
+      - TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
+      - ROCBLAS_USE_HIPBLASLT=1
+      - HIP_FORCE_DEV_KERNARG=1
+      - RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
+      - VLLM_DISABLE_COMPILE_CACHE=1
+      - NCCL_PROTO=Simple
+      - NCCL_DEBUG=WARN
+      - GPU_MAX_HW_QUEUES=${GPU_MAX_HW_QUEUES:-2}
+      - VLLM_TUNED_CONFIG_FOLDER=/tunableop
+      - PYTORCH_TUNABLEOP_ENABLED=${PYTORCH_TUNABLEOP_ENABLED:-1}
+      - PYTORCH_TUNABLEOP_TUNING=${PYTORCH_TUNABLEOP_TUNING:-0}
+      - PYTORCH_TUNABLEOP_RECORD_UNTUNED=${PYTORCH_TUNABLEOP_RECORD_UNTUNED:-0}
+      - PYTORCH_TUNABLEOP_FILENAME=/tunableop/tunableop_merged.csv
+      - TRITON_CACHE_DIR=/root/.triton/cache
+    command: >
+      python3 -m vllm.entrypoints.openai.api_server
+      --model ${VLLM_MODEL:-Qwen/Qwen3.6-27B-FP8}
+      --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen3.6-27B-FP8}
+      --host ${VLLM_HOST:-0.0.0.0}
+      --port ${VLLM_PORT:-8000}
+      --tensor-parallel-size ${VLLM_TP_SIZE:-2}
+      --dtype ${VLLM_DTYPE:-auto}
+      --attention-backend ROCM_AITER_UNIFIED_ATTN
+      --compilation-config '{"pass_config":{"fuse_norm_quant":false}}'
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-131072}
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTIL:-0.95}
+      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-2}
+      --enable-chunked-prefill
+      --enable-prefix-caching
+      --trust-remote-code
+      --quantization ${VLLM_QUANTIZATION:-fp8}
+      --enable-auto-tool-choice
+      --tool-call-parser ${VLLM_TOOL_CALL_PARSER:-qwen3_coder}
+      --reasoning-parser ${VLLM_REASONING_PARSER:-qwen3}
+      --speculative-config '{"method":"mtp","num_speculative_tokens":${VLLM_MTP_TOKENS:-3}}'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${VLLM_PORT:-8000}/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 180s
+
+  gui:
+    build:
+      context: ./gui
+    container_name: ${VLLM_GUI_CONTAINER_NAME:-vllm-browser-gui}
+    restart: "no"
+    network_mode: host
+    depends_on:
+      - vllm
+    environment:
+      - GUI_PORT=${GUI_PORT:-8080}
+      - GUI_HOST=${GUI_HOST:-0.0.0.0}
+      - VLLM_PORT=${VLLM_PORT:-8000}
+      - VLLM_MODEL=${VLLM_SERVED_MODEL_NAME:-Qwen3.6-27B-FP8}
+      - GUI_DEFAULT_MODE=${GUI_DEFAULT_MODE:-chat}
+      - GUI_DEFAULT_TEMPERATURE=${GUI_DEFAULT_TEMPERATURE:-0.2}
+      - GUI_DEFAULT_MAX_TOKENS=${GUI_DEFAULT_MAX_TOKENS:-10000}
+      - GUI_DEFAULT_SYSTEM_PROMPT=${GUI_DEFAULT_SYSTEM_PROMPT:-You are a concise assistant. Keep answers short and practical.}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${GUI_PORT:-8080}/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
