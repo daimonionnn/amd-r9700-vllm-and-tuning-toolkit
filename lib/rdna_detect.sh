@@ -41,13 +41,16 @@ rdna_enumerate_pci_ids() {
     local bdf dev vram
     while IFS= read -r bdf; do
         dev="/sys/bus/pci/devices/$bdf"
+        # Discrete-only: integrated GPUs (e.g. Cezanne/Renoir gfx9 iGPUs)
+        # do not populate mem_info_vram_vendor. PyTorch ROCm wheels only
+        # ship kernels for the discrete RDNA targets the user opted into,
+        # so including a gfx9 iGPU here causes hipErrorInvalidKernelFile
+        # in vLLM / torch distributed init.
+        [[ -r "$dev/mem_info_vram_vendor" ]] || continue
         if [[ -r "$dev/mem_info_vram_total" ]]; then
             vram="$(<"$dev/mem_info_vram_total")"
             [[ "$vram" =~ ^[0-9]+$ ]] || continue
             (( vram >= RDNA_MIN_VRAM_BYTES )) || continue
-        else
-            # Without VRAM info, fall back to assuming discrete.
-            :
         fi
         printf '%s\n' "$bdf"
     done < <(amdgpu_enumerate_pci_ids)

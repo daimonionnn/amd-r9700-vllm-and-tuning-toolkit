@@ -14,6 +14,8 @@ CORE_CLOCK_MAX_MHZ=""
 FAN_SPEED_PCT=""
 FAN_CURVE=""
 FAN_AUTO=0
+LOCK_MEM_DPM_HIGH=0
+LOCK_CORE_DPM_HIGH=0
 DRY_RUN=0
 STATUS_ONLY=0
 RESET_ONLY=0
@@ -44,6 +46,10 @@ Options:
                           where T=hotspot temp (°C), P=fan speed (%). Temps must be ascending.
                           Example: "25 25 50 30 70 34 85 37 100 40"
   --fan-auto              Return fan to automatic/driver-controlled speed
+  --lock-mem-dpm-high     Mask pp_dpm_mclk to the highest DPM level so the SMU
+                          cannot demote memory clock under load. Useful for
+                          memory-bandwidth-bound workloads (LLM decode).
+  --lock-core-dpm-high    Same, but for pp_dpm_sclk (GPU core clock).
   --status                Print detected paths and current overdrive values, then exit
   --reset                 Reset overdrive values to driver defaults, then exit
   --dry-run               Show what would be written without changing anything
@@ -173,6 +179,40 @@ write_value() {
     printf '%s\n' "$value" > "$path"
 }
 
+# Returns 0 (success) on a successful write, or non-zero if the write fails.
+# Unlike write_value, never aborts the script — caller decides how to react.
+try_write_value() {
+    local value="$1"
+    local path="$2"
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        printf '[dry-run] echo "%s" > %s\n' "$value" "$path"
+        return 0
+    fi
+
+    printf '%s\n' "$value" > "$path" 2>/dev/null
+}
+
+# Parse the current OD state out of pp_od_clk_voltage so we can skip writes
+# (and the matching commit) that wouldn't actually change anything.  The kernel
+# rejects 'c' with -EINVAL ("Failed to upload overdrive table!") when there is
+# nothing pending, so re-running the script with identical settings used to
+# abort here.
+read_current_od() {
+    local source="$1" label="$2"
+    case "$label" in
+        vddgfx_offset)
+            sed -nE 's/^OD_VDDGFX_OFFSET:[[:space:]]*$|^([-0-9]+)mV.*$/\1/p' <<< "$source" | grep -E '.' | head -n1
+            ;;
+        mclk_max)
+            sed -nE 's/^1:[[:space:]]*([0-9]+)M[hH]z.*$/\1/p' <<< "$(awk '/^OD_MCLK:/{flag=1;next}/^OD_/{flag=0}flag' <<< "$source")" | head -n1
+            ;;
+        sclk_offset)
+            sed -nE 's/^([-0-9]+)M[hH]z.*$/\1/p' <<< "$(awk '/^OD_SCLK_OFFSET:/{flag=1;next}/^OD_/{flag=0}flag' <<< "$source")" | head -n1
+            ;;
+    esac
+}
+
 extract_range_pair() {
     local label="$1"
     local source="$2"
@@ -280,6 +320,14 @@ parse_args() {
                 FAN_AUTO=1
                 shift
                 ;;
+            --lock-mem-dpm-high)
+                LOCK_MEM_DPM_HIGH=1
+                shift
+                ;;
+            --lock-core-dpm-high)
+                LOCK_CORE_DPM_HIGH=1
+                shift
+                ;;
             --dry-run)
                 DRY_RUN=1
                 shift
@@ -347,7 +395,7 @@ apply_to_gpu() {
 
     if [[ "$STATUS_ONLY" -eq 1 ]]; then
         show_status "$PCI_ID" "$card_name" "$card_path" "$hwmon_dir"
-        exit 0
+        return 0
     fi
 
     log "Target GPU: $card_name ($PCI_ID)"
@@ -355,33 +403,71 @@ apply_to_gpu() {
 
     if [[ "$RESET_ONLY" -eq 1 ]]; then
         log "Resetting overdrive clock/voltage values to defaults"
-        write_value "manual" "$card_path/device/power_dpm_force_performance_level"
-        write_value "r" "$card_path/device/pp_od_clk_voltage"
-        write_value "auto" "$card_path/device/power_dpm_force_performance_level"
+        # Order matters: OD writes require performance_level=manual.
+        try_write_value "manual" "$card_path/device/power_dpm_force_performance_level" \
+            || warn "Could not set performance_level=manual"
+        try_write_value "r" "$card_path/device/pp_od_clk_voltage" \
+            || warn "Could not stage OD reset (pp_od_clk_voltage 'r')"
+        try_write_value "c" "$card_path/device/pp_od_clk_voltage" \
+            || warn "Could not commit OD reset (pp_od_clk_voltage 'c') — usually means there was nothing to reset"
+
+        # Explicitly unmask pp_dpm_mclk / pp_dpm_sclk by writing every level
+        # index back.  Relying on performance_level=auto to clear the mask is
+        # unreliable (the auto write itself sometimes fails silently after an
+        # OD reset, leaving the previous mask in place — that was the cause
+        # of the "one card stuck at 1258 MHz, the other at 96 MHz" asymmetry).
+        local dpm_clk dpm_node dpm_levels
+        for dpm_clk in mclk sclk; do
+            dpm_node="$card_path/device/pp_dpm_${dpm_clk}"
+            [[ -w "$dpm_node" ]] || continue
+            dpm_levels=$(awk -F: '/^[[:space:]]*[0-9]+:/ { gsub(/ /,"",$1); printf "%s ", $1 }' "$dpm_node")
+            if [[ -n "$dpm_levels" ]]; then
+                log "Unmasking ${dpm_clk} DPM levels: ${dpm_levels% }"
+                try_write_value "${dpm_levels% }" "$dpm_node" \
+                    || warn "Could not unmask $dpm_node"
+            fi
+        done
+
+        # Finally hand control back to the SMU so it can scale freely.
+        try_write_value "auto" "$card_path/device/power_dpm_force_performance_level" \
+            || warn "Could not switch to performance_level=auto"
 
         if [[ -n "$hwmon_dir" ]]; then
             local cap_default="$hwmon_dir/power1_cap_default"
             local cap_node="$hwmon_dir/power1_cap"
             if [[ -r "$cap_default" && -w "$cap_node" ]]; then
-                local default_uw
+                local default_uw cur_uw
                 default_uw=$(<"$cap_default")
-                log "Resetting power cap to default: $(( default_uw / 1000000 )) W"
-                write_value "$default_uw" "$cap_node"
+                cur_uw=$(<"$cap_node")
+                if [[ "$default_uw" == "$cur_uw" ]]; then
+                    log "Power cap already at default $(( default_uw / 1000000 )) W; skipping"
+                else
+                    log "Resetting power cap to default: $(( default_uw / 1000000 )) W"
+                    try_write_value "$default_uw" "$cap_node" \
+                        || warn "Could not reset power cap (firmware refused write); leaving at $(( cur_uw / 1000000 )) W"
+                fi
             else
                 warn "Could not reset power cap: power1_cap_default not readable or power1_cap not writable"
             fi
             if [[ -e "$hwmon_dir/pwm1_enable" && -w "$hwmon_dir/pwm1_enable" ]]; then
                 log "Resetting fan control to automatic"
-                write_value "2" "$hwmon_dir/pwm1_enable"
+                try_write_value "2" "$hwmon_dir/pwm1_enable" \
+                    || warn "Could not reset pwm1_enable to automatic"
             fi
         fi
         if [[ -n "$gpu_od_fan_dir" && -w "$gpu_od_fan_dir/fan_curve" ]]; then
             log "Resetting gpu_od fan curve to driver defaults"
-            write_value "r" "$gpu_od_fan_dir/fan_curve"
+            try_write_value "r" "$gpu_od_fan_dir/fan_curve" \
+                || warn "Could not reset gpu_od fan curve (firmware may have rejected EIO); leaving as-is"
         fi
 
+        # Sanity report so asymmetric reset state is visible immediately.
+        log "Post-reset state:"
+        log "  performance_level: $(<"$card_path/device/power_dpm_force_performance_level" 2>/dev/null || echo '?')"
+        log "  pp_dpm_mclk: $(awk '/\*/{print $1 $2}' "$card_path/device/pp_dpm_mclk" 2>/dev/null | tr '\n' ' ')(active marked with *)"
+
         log "Reset complete"
-        exit 0
+        return 0
     fi
 
     od_dump="$(read_file_trimmed "$card_path/device/pp_od_clk_voltage")"
@@ -406,46 +492,127 @@ apply_to_gpu() {
     log "Switching GPU to manual performance mode"
     write_value "manual" "$card_path/device/power_dpm_force_performance_level"
 
+    # Snapshot current OD state; only stage values that actually differ.
+    # The kernel returns -EINVAL on commit if no pending change has actually
+    # been queued (firmware refuses the "upload" since the table is identical).
+    local cur_vddgfx cur_mclk cur_sclk pending=0
+    cur_vddgfx="$(read_current_od "$od_dump" vddgfx_offset)"
+    cur_mclk="$(read_current_od "$od_dump" mclk_max)"
+    cur_sclk="$(read_current_od "$od_dump" sclk_offset)"
+
     if [[ -n "$UNDERVOLT_OFFSET_MV" ]]; then
-        log "Applying undervolt offset: ${UNDERVOLT_OFFSET_MV} mV"
-        write_value "vo $UNDERVOLT_OFFSET_MV" "$card_path/device/pp_od_clk_voltage"
+        if [[ "$cur_vddgfx" == "$UNDERVOLT_OFFSET_MV" ]]; then
+            log "Undervolt offset already ${UNDERVOLT_OFFSET_MV} mV; skipping"
+        else
+            log "Applying undervolt offset: ${UNDERVOLT_OFFSET_MV} mV (was ${cur_vddgfx:-?} mV)"
+            write_value "vo $UNDERVOLT_OFFSET_MV" "$card_path/device/pp_od_clk_voltage"
+            pending=1
+        fi
     else
         log "Leaving undervolt offset unchanged"
     fi
 
     if [[ -n "$MEMORY_CLOCK_MHZ" ]]; then
-        log "Applying max memory clock: ${MEMORY_CLOCK_MHZ} MHz"
-        write_value "m 1 $MEMORY_CLOCK_MHZ" "$card_path/device/pp_od_clk_voltage"
+        if [[ "$cur_mclk" == "$MEMORY_CLOCK_MHZ" ]]; then
+            log "Max memory clock already ${MEMORY_CLOCK_MHZ} MHz; skipping"
+        else
+            log "Applying max memory clock: ${MEMORY_CLOCK_MHZ} MHz (was ${cur_mclk:-?} MHz)"
+            write_value "m 1 $MEMORY_CLOCK_MHZ" "$card_path/device/pp_od_clk_voltage"
+            pending=1
+        fi
     else
         log "Leaving max memory clock unchanged"
     fi
 
     if [[ -n "$CORE_CLOCK_MAX_MHZ" ]]; then
-        log "Applying max core clock: ${CORE_CLOCK_MAX_MHZ} MHz"
-        write_value "s 1 $CORE_CLOCK_MAX_MHZ" "$card_path/device/pp_od_clk_voltage"
+        if [[ "$cur_sclk" == "$CORE_CLOCK_MAX_MHZ" ]]; then
+            log "Core clock offset already ${CORE_CLOCK_MAX_MHZ} MHz; skipping"
+        else
+            log "Applying max core clock: ${CORE_CLOCK_MAX_MHZ} MHz (was ${cur_sclk:-?} MHz)"
+            write_value "s 1 $CORE_CLOCK_MAX_MHZ" "$card_path/device/pp_od_clk_voltage"
+            pending=1
+        fi
     else
         log "Leaving max core clock unchanged"
     fi
 
-    log "Committing overdrive changes"
-    write_value "c" "$card_path/device/pp_od_clk_voltage"
+    if (( pending == 1 )); then
+        log "Committing overdrive changes"
+        if ! try_write_value "c" "$card_path/device/pp_od_clk_voltage"; then
+            warn "Commit returned EINVAL — firmware rejected the OD table. Settings may not have been applied. Check 'dmesg | grep overdrive'."
+        fi
+    else
+        log "No overdrive changes to commit"
+    fi
 
     if [[ -n "$TDP_WATTS" ]]; then
         if [[ -z "$hwmon_dir" || ! -e "$hwmon_dir/power1_cap" ]]; then
             warn "Could not find power1_cap under $card_path/device/hwmon; skipping TDP change"
         else
-            local power_cap_min power_cap_max target_power_uw
+            local power_cap_min power_cap_max power_cap_default power_cap_cur target_power_uw
             target_power_uw=$(( TDP_WATTS * 1000000 ))
             power_cap_min=$(<"$hwmon_dir/power1_cap_min")
             power_cap_max=$(<"$hwmon_dir/power1_cap_max")
+            power_cap_default=$(<"$hwmon_dir/power1_cap_default" 2>/dev/null || echo 0)
+            power_cap_cur=$(<"$hwmon_dir/power1_cap")
             assert_in_range "$target_power_uw" "$power_cap_min" "$power_cap_max" "Power cap (uW)"
 
-            log "Applying board power cap: ${TDP_WATTS} W"
-            write_value "$target_power_uw" "$hwmon_dir/power1_cap"
+            if [[ "$target_power_uw" == "$power_cap_cur" ]]; then
+                log "Board power cap already ${TDP_WATTS} W; skipping"
+            else
+                log "Applying board power cap: ${TDP_WATTS} W"
+                if ! try_write_value "$target_power_uw" "$hwmon_dir/power1_cap"; then
+                    # The R9700 firmware advertises power1_cap_max above the
+                    # actual supported ceiling (e.g. reports 330 W but rejects
+                    # anything > power1_cap_default = 300 W with EIO).  Warn
+                    # and fall back to power1_cap_default so the rest of the
+                    # tuning (fan curve etc.) still applies.
+                    if (( power_cap_default > 0 )) && [[ "$power_cap_cur" != "$power_cap_default" ]]; then
+                        warn "Firmware rejected ${TDP_WATTS} W (power1_cap_max=$((power_cap_max/1000000)) W is advertised but not honored). Falling back to default $((power_cap_default/1000000)) W."
+                        try_write_value "$power_cap_default" "$hwmon_dir/power1_cap" \
+                            || warn "Could not set power cap to default either; leaving at $((power_cap_cur/1000000)) W."
+                    else
+                        warn "Firmware rejected ${TDP_WATTS} W and current cap already matches default; leaving at $((power_cap_cur/1000000)) W."
+                    fi
+                fi
+            fi
         fi
     else
         log "Leaving board power cap unchanged"
     fi
+
+    # Pin DPM tables to top level so the SMU cannot demote clocks while
+    # the workload looks "idle" (decode phase of an LLM is memory-bound but
+    # very bursty and the SMU often drops mclk to 96/456 MHz mid-batch).
+    local dpm_node
+    for dpm_node in mclk:LOCK_MEM_DPM_HIGH sclk:LOCK_CORE_DPM_HIGH; do
+        local clk="${dpm_node%%:*}"
+        local flagvar="${dpm_node##*:}"
+        local flagval="${!flagvar}"
+        local sysnode="$card_path/device/pp_dpm_${clk}"
+        if [[ "$flagval" != "1" ]]; then
+            continue
+        fi
+        if [[ ! -w "$sysnode" ]]; then
+            warn "Cannot write to $sysnode; skipping --lock-${clk}-dpm-high"
+            continue
+        fi
+        # Each non-header line is "<index>: <freq>Mhz [*]". Pick the largest
+        # index (top DPM state). Skip lines whose index isn't a digit (e.g.
+        # the bogus "S: 0Mhz *" line some firmwares print for sclk).
+        local top_idx
+        top_idx=$(awk -F: '/^[[:space:]]*[0-9]+:/ { gsub(/ /,"",$1); idx=$1 } END { print idx }' "$sysnode")
+        if [[ -z "$top_idx" ]]; then
+            warn "Could not parse top DPM level from $sysnode; skipping"
+            continue
+        fi
+        local top_freq
+        top_freq=$(awk -v i="$top_idx" -F: '$1+0==i { sub(/[*[:space:]]/,"",$2); print $2 }' "$sysnode" | head -n1)
+        log "Pinning ${clk} DPM to top level $top_idx (${top_freq})"
+        if ! try_write_value "$top_idx" "$sysnode"; then
+            warn "Failed to pin $sysnode to level $top_idx"
+        fi
+    done
 
     if [[ -n "$FAN_SPEED_PCT" ]]; then
         if [[ -n "$gpu_od_fan_dir" && -w "$gpu_od_fan_dir/fan_curve" ]]; then

@@ -13,6 +13,11 @@ This directory contains benchmarking scripts tailored for testing Large Language
 - **`run_llm_benchmark_rocm.sh`**: The primary full benchmarking script using the native ROCm/HIP backend.
 - **`bench-rocm7.sh`**: Generalized ROCm backend benchmarking script.
 
+**vLLM Backend (Tensor-Parallel, FP8, OpenAI server):**
+- vLLM docs and script catalog are centralized in [../vllm/README.md](../vllm/README.md).
+- Baremetal wrappers: [../vllm/baremetal/](../vllm/baremetal/)
+- Docker wrappers: [../vllm/docker/](../vllm/docker/)
+
 ## Benchmark Parameters
 
 The scripts evaluate the models under the following explicitly configured conditions:
@@ -45,13 +50,13 @@ The scripts evaluate the models under the following explicitly configured condit
 
 The AMD Radeon AI PRO R9700 (Navi 48, **gfx1201**, RDNA 4) is a ROCm-capable GPU, but AMD's official `amdgpu-install` packaging only supports specific Ubuntu LTS releases. This table summarises what works on each Ubuntu version and what workaround to use.
 
-| Ubuntu Version | Codename | Official `amdgpu-install` | Recommended Method | Notes |
-|---|---|---|---|---|
-| 22.04 LTS | jammy | ✅ Supported | Method 2 (AMD apt) | Official LTS — use `amdgpu-install` directly |
-| 24.04 LTS | noble | ✅ Supported | Method 2 (AMD apt) | Official LTS — use `amdgpu-install` directly |
-| 24.10 | oracular | ❌ Blocked | **Method 1** (TheRock pip) | Non-LTS; `amdgpu-install` rejects codename |
-| 25.04 | plucky | ❌ Blocked | **Method 1** (TheRock pip) | Non-LTS; `amdgpu-install` rejects codename |
-| 25.10 | questing | ❌ Blocked | **Method 1** (TheRock pip) | Non-LTS; same kernel 6.17 HWE as noble — fully functional |
+| Ubuntu Version | Codename | Official `amdgpu-install` | Recommended Method         | Notes                                                     |
+| -------------- | -------- | ------------------------- | -------------------------- | --------------------------------------------------------- |
+| 22.04 LTS      | jammy    | ✅ Supported               | Method 2 (AMD apt)         | Official LTS — use `amdgpu-install` directly              |
+| 24.04 LTS      | noble    | ✅ Supported               | Method 2 (AMD apt)         | Official LTS — use `amdgpu-install` directly              |
+| 24.10          | oracular | ❌ Blocked                 | **Method 1** (TheRock pip) | Non-LTS; `amdgpu-install` rejects codename                |
+| 25.04          | plucky   | ❌ Blocked                 | **Method 1** (TheRock pip) | Non-LTS; `amdgpu-install` rejects codename                |
+| 25.10          | questing | ❌ Blocked                 | **Method 1** (TheRock pip) | Non-LTS; same kernel 6.17 HWE as noble — fully functional |
 
 > **Why LM Studio works on Ubuntu 25.10:** LM Studio bundles its own self-contained ROCm runtime and does not rely on a system-level install, so it bypasses the distro restriction entirely.
 
@@ -161,6 +166,31 @@ LD_LIBRARY_PATH=llm/rocm-venv/lib \
 ```
 
 > **Note:** The script auto-discovers all discrete RDNA GPUs and sets `HIP_VISIBLE_DEVICES` accordingly, excluding the integrated Cezanne iGPU. Use `--gpus 1`, `--gpus 0,1`, or `--gpus 0000:03:00.0` (or env-var `RDNA_GPUS=...`) to override. With more than one GPU selected, per-GPU passes plus a combined pass are run; add `--no-per-gpu-sweep` to skip the individual passes.
+
+### vLLM benchmark (tensor parallel + FP8)
+
+vLLM usage has been moved out of this benchmark document to keep concerns separated.
+
+Use:
+- [../vllm/README.md](../vllm/README.md)
+- [../vllm/baremetal/](../vllm/baremetal/)
+- [../vllm/docker/](../vllm/docker/)
+
+Quick examples:
+
+```bash
+# Baremetal
+cd ../vllm
+./baremetal/install_vllm_rocm.sh
+./baremetal/bench-vllm.sh --num-prompts 4 --input-len 256 --output-len 32
+
+# Docker
+./docker/run_vllm_aiter_0202_2x.sh up
+./docker/bench_aiter_image_ab.sh
+./docker/run_vllm_aiter_0202_2x.sh gui
+./docker/run_vllm_aiter_0202_2x_stop.sh
+./docker/run_vllm_aiter_0202_2x_restart.sh
+```
 
 ## Results
 

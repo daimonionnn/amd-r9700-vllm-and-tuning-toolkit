@@ -1,10 +1,11 @@
 # AMD Radeon RDNA LLM Tuning Toolkit
 
-This workspace includes scripts organised into three folders:
+This workspace includes scripts organised into four folders:
 
 - **`tuning/`** — `amdgpu` sysfs overdrive tuning scripts
-- **`llm/`** — ROCm install, llama.cpp source and compiled runtimes
-- **`benchmark/`** — LLM benchmarking scripts and results
+- **`llm/`** — ROCm install + llama.cpp source / compiled runtimes (and the heavy vLLM build artefacts: `vllm-venv/`, `vllm-src/`, `flash-attention/`)
+- **`vllm/`** — vLLM tooling (now split into `vllm/baremetal/` and `vllm/docker/`). See [vllm/README.md](vllm/README.md).
+- **`benchmark/`** — llama.cpp Vulkan + ROCm benchmarking scripts and results
 
 ### Tuning scripts
 1. `tuning/amd_radeon_rdna_tunning.sh`: A generic script for tuning *any* AMD Radeon RDNA GPU. By default, it applies no hardware limits unless explicitly requested through command-line parameters.
@@ -53,17 +54,17 @@ sudo ./tuning/tune_r9700.sh --pci-id 0000:07:00.0
 > first — there are real PCIe bifurcation quirks (broken `x8/x8` mode,
 > Gen1-x4 link training on the secondary slot) documented there.
 
-Every script in `tuning/`, `llm/` and `benchmark/` accepts a unified `--gpus`
+Every script in `tuning/`, `llm/`, `vllm/` and `benchmark/` accepts a unified `--gpus`
 selector for choosing which RDNA GPUs to act on. The selector understands
 several forms — pick whichever is most convenient:
 
-| Form | Meaning |
-|------|---------|
-| `--gpus all` *(default)* | Every detected discrete RDNA GPU |
-| `--gpus 1` | First RDNA GPU only (PCI-BDF order) |
-| `--gpus 2` | First N RDNA GPUs |
-| `--gpus 0,2` | Specific RDNA indices (zero-based, iGPU excluded) |
-| `--gpus 0000:03:00.0,0000:0f:00.0` | Explicit PCI BDFs (most robust) |
+| Form                               | Meaning                                           |
+| ---------------------------------- | ------------------------------------------------- |
+| `--gpus all` *(default)*           | Every detected discrete RDNA GPU                  |
+| `--gpus 1`                         | First RDNA GPU only (PCI-BDF order)               |
+| `--gpus 2`                         | First N RDNA GPUs                                 |
+| `--gpus 0,2`                       | Specific RDNA indices (zero-based, iGPU excluded) |
+| `--gpus 0000:03:00.0,0000:0f:00.0` | Explicit PCI BDFs (most robust)                   |
 
 Environment-variable fallback: `export RDNA_GPUS=...` is used when `--gpus`
 is not passed (handy for systemd units and the `tune_r9700-tune.service`).
@@ -94,6 +95,14 @@ sudo ./tuning/tune_r9700_max.sh --gpus 1
 
 # Benchmark just the first card, ROCm
 ./benchmark/run_llm_benchmark_rocm.sh --gpus 0
+
+# Serve Qwen3-30B-A3B-Instruct FP8 with vLLM, tensor-parallel across all detected R9700s
+./vllm/baremetal/install_vllm_rocm.sh            # first-time setup (RDNA4 stack: AITER + custom RCCL + patches)
+./vllm/baremetal/run_vllm_server.sh              # uses all RDNA GPUs, TP=N auto
+
+# Benchmark vLLM (single-shot or full sweep)
+./vllm/baremetal/bench-vllm.sh --num-prompts 4 --input-len 256 --output-len 32   # smoke test
+./vllm/baremetal/bench-vllm-suite.sh             # per-GPU + combined TP=N passes
 ```
 
 Dry run:
@@ -140,13 +149,13 @@ The R9700 (Navi 48) does **not** use the standard `hwmon/pwm1_enable` interface.
 
 ### Default fan curve (`tune_r9700.sh`)
 
-| Point | Hotspot temp | Fan speed |
-|-------|-------------|----------|
-| 0 | 25 °C | 25% |
-| 1 | 50 °C | 30% |
-| 2 | 70 °C | 34% |
-| 3 | 85 °C | 37% |
-| 4 | 100 °C | 40% |
+| Point   | Hotspot temp  | Fan speed  |
+| ------- | ------------- | ---------- |
+| 0       | 25 °C         | 25%        |
+| 1       | 50 °C         | 30%        |
+| 2       | 70 °C         | 34%        |
+| 3       | 85 °C         | 37%        |
+| 4       | 100 °C        | 40%        |
 
 > **Hardware minimum:** The driver enforces a minimum of **25%** fan speed (`OD_RANGE: FAN_CURVE(fan speed): 25% 100%`). Any value below 25% is clamped automatically.
 
@@ -192,14 +201,14 @@ For ROCm installation on this GPU across Ubuntu versions, see the [benchmark REA
 
 ROCm and llama.cpp runtimes live in `llm/` — see [llm/install_rocm7_and_compile_llama.sh](llm/install_rocm7_and_compile_llama.sh).
 
-> **Known issue — ROCm idle power**: When a model is loaded with the ROCm/HIP backend, the R9700 stays at ~70–100W even when idle due to a MES firmware bug ([ROCm/ROCm#5706](https://github.com/ROCm/ROCm/issues/5706)). Workaround: `export GPU_MAX_HW_QUEUES=1` (already set in the provided scripts). The Vulkan backend does not have this issue. See [Known Issue section](benchmark/README.md#known-issue-rocm-high-idle-power-consumption-gfx1201--r9700) for details.
+## vLLM on R9700 / gfx1201
 
-Quick reference:
+The vLLM documentation has moved into [vllm/README.md](vllm/README.md).
 
-| Ubuntu | ROCm Method |
-|--------|-------------|
-| 22.04 / 24.04 LTS | `amdgpu-install` official |
-| 24.10 / 25.04 / 25.10 | TheRock pip (Method 1) or AMD noble apt (Method 2) |
+Quick links:
+- Baremetal workflow: [vllm/baremetal](vllm/baremetal)
+- Docker workflow: [vllm/docker](vllm/docker)
+- Full guide: [vllm/README.md](vllm/README.md)
 
 ## Tested Environment
 

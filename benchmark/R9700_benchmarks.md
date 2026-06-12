@@ -22,7 +22,7 @@ Command: llama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-communi
 
 
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | Vulkan     |  99 |  1 |          pp1024 |        889.16 ± 1.01 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | Vulkan     |  99 |  1 |          pp4096 |        868.53 ± 2.82 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | Vulkan     |  99 |  1 |         pp32768 |        729.89 ± 1.29 |
@@ -37,7 +37,7 @@ Command: llama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-communi
 
 
 | model                          |       size |     params | backend    | ngl | type_k | type_v | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | -----: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | -----: | --: | --------------: | -------------------: |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | Vulkan     |  99 |   q8_0 |   q8_0 |  1 |          pp1024 |        874.26 ± 0.90 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | Vulkan     |  99 |   q8_0 |   q8_0 |  1 |          pp4096 |        839.25 ± 2.74 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | Vulkan     |  99 |   q8_0 |   q8_0 |  1 |         pp32768 |        628.97 ± 1.94 |
@@ -53,11 +53,11 @@ Command: lama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-communit
 
 
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
-| gemma4 31B Q4_K - Medium        |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |          pp1024 |        719.26 ± 0.18 |
-| gemma4 31B Q4_K - Medium        |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |          pp4096 |        694.06 ± 0.76 |
-| gemma4 31B Q4_K - Medium        |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |         pp32768 |        569.66 ± 0.07 |
-| gemma4 31B Q4_K - Medium        |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |           tg128 |         27.73 ± 0.04 |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
+| gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |          pp1024 |        719.26 ± 0.18 |
+| gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |          pp4096 |        694.06 ± 0.76 |
+| gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |         pp32768 |        569.66 ± 0.07 |
+| gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | Vulkan     |  99 |  1 |           tg128 |         27.73 ± 0.04 |
 
 
 
@@ -69,11 +69,11 @@ Command: lama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-communit
 
 
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
-| gemma4 26B Q4_K - Medium        |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |          pp1024 |      2936.84 ± 27.26 |
-| gemma4 26B Q4_K - Medium        |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |          pp4096 |      2860.95 ± 14.30 |
-| gemma4 26B Q4_K - Medium        |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |         pp32768 |       2318.21 ± 5.86 |
-| gemma4 26B Q4_K - Medium        |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |           tg128 |        108.72 ± 0.52 |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
+| gemma4 26B Q4_K - Medium       |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |          pp1024 |      2936.84 ± 27.26 |
+| gemma4 26B Q4_K - Medium       |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |          pp4096 |      2860.95 ± 14.30 |
+| gemma4 26B Q4_K - Medium       |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |         pp32768 |       2318.21 ± 5.86 |
+| gemma4 26B Q4_K - Medium       |  15.63 GiB |    25.23 B | Vulkan     |  99 |  1 |           tg128 |        108.72 ± 0.52 |
 
 
 ## RoCm 7.2.3
@@ -89,7 +89,7 @@ Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1036.56 ± 0.79 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |        974.38 ± 2.62 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        659.45 ± 1.73 |
@@ -107,7 +107,7 @@ Command: lama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |          pp1024 |        849.32 ± 0.65 |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |          pp4096 |        743.82 ± 0.19 |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |         pp32768 |        467.26 ± 0.04 |
@@ -124,7 +124,7 @@ Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |          pp1024 |      3427.14 ± 37.01 |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |          pp4096 |       3018.94 ± 9.62 |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |         pp32768 |       1887.41 ± 9.41 |
@@ -149,7 +149,7 @@ Command: lama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1076.88 ± 0.86 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |       1011.53 ± 1.97 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        690.40 ± 1.08 |
@@ -165,7 +165,7 @@ Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |          pp1024 |        892.00 ± 0.25 |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |          pp4096 |        779.73 ± 0.18 |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |         pp32768 |        488.26 ± 0.03 |
@@ -181,7 +181,7 @@ Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |          pp1024 |      3440.87 ± 20.10 |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |          pp4096 |      3042.79 ± 26.98 |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |         pp32768 |       1946.48 ± 4.51 |
@@ -208,7 +208,7 @@ Command: lama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |        962.04 ± 0.67 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |        907.26 ± 1.59 |
 | qwen36 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        619.88 ± 2.20 |
@@ -226,7 +226,7 @@ Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |          pp1024 |        795.82 ± 0.28 |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |          pp4096 |        698.59 ± 0.47 |
 | gemma4 31B Q4_K - Medium       |  17.39 GiB |    30.70 B | ROCm       |  99 |  1 |         pp32768 |        440.89 ± 0.03 |
@@ -244,7 +244,7 @@ Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |          pp1024 |      3119.01 ± 13.34 |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |          pp4096 |      2763.28 ± 14.72 |
 | gemma4 26B.A4B Q4_K - Medium   |  15.63 GiB |    25.23 B | ROCm       |  99 |  1 |         pp32768 |       1762.45 ± 2.80 |
@@ -276,7 +276,7 @@ Command: llm/llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-commu
 gml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1147.43 ± 1.18 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |       1083.27 ± 1.79 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        724.73 ± 1.59 |
@@ -305,7 +305,7 @@ Env: HIP_VISIBLE_DEVICES=0
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1109.86 ± 1.04 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |       1041.80 ± 3.69 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        695.83 ± 0.94 |
@@ -323,10 +323,10 @@ Env: HIP_VISIBLE_DEVICES=1
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1064.77 ± 2.46 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |        993.76 ± 4.34 |
-| qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        598.86 ± 14.52 |
+| qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |       598.86 ± 14.52 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |           tg128 |         27.75 ± 0.04 |
 
 
@@ -342,7 +342,7 @@ ggml_cuda_init: found 2 ROCm devices (Total VRAM: 65248 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
   Device 1: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1265.70 ± 1.24 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |       1604.70 ± 1.41 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |       1153.24 ± 3.53 |
@@ -377,10 +377,10 @@ Env: HIP_VISIBLE_DEVICES=0
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1113.00 ± 0.53 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |       1047.48 ± 2.74 |
-| qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        666.27 ± 12.28 |
+| qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |       666.27 ± 12.28 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |           tg128 |         28.45 ± 0.03 |
 
 
@@ -395,10 +395,10 @@ Env: HIP_VISIBLE_DEVICES=1
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1089.43 ± 1.83 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |       1027.64 ± 3.54 |
-| qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |        641.03 ± 11.94 |
+| qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |       641.03 ± 11.94 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |           tg128 |         28.04 ± 0.12 |
 
 
@@ -414,7 +414,7 @@ ggml_cuda_init: found 2 ROCm devices (Total VRAM: 65248 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
   Device 1: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl | fa |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | -: | --------------: | -------------------: |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp1024 |       1300.77 ± 1.01 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |          pp4096 |       1682.51 ± 2.52 |
 | qwen35 27B Q4_K - Medium       |  15.40 GiB |    26.90 B | ROCm       |  99 |  1 |         pp32768 |       1210.40 ± 9.58 |
@@ -423,19 +423,19 @@ ggml_cuda_init: found 2 ROCm devices (Total VRAM: 65248 MiB):
 
 #### Observations — Gen2 x4 vs Gen1 x4 on GPU 1
 
-| Test     | Solo GPU 1 Gen1 x4 | Solo GPU 1 **Gen2 x4** | Δ vs Gen1 | Gap to Gen3 x8 (GPU 0) |
-|----------|--------------------:|------------------------:|----------:|------------------------:|
-| pp1024   |         1064.77 t/s |             1089.43 t/s |    +2.3 % |                  −2.1 % |
-| pp4096   |          993.76 t/s |             1027.64 t/s |    +3.4 % |                  −1.9 % |
-| pp32768  |          598.86 t/s |              641.03 t/s |    +7.0 % |                  −3.8 % |
-| tg128    |           27.75 t/s |               28.04 t/s |    +1.0 % |                  −1.4 % |
+| Test       |    Solo GPU 1 Gen1 x4 |    Solo GPU 1 **Gen2 x4** |   Δ vs Gen1 |    Gap to Gen3 x8 (GPU 0) |
+| ---------- | --------------------: | ------------------------: | ----------: | ------------------------: |
+| pp1024     |           1064.77 t/s |               1089.43 t/s |      +2.3 % |                    −2.1 % |
+| pp4096     |            993.76 t/s |               1027.64 t/s |      +3.4 % |                    −1.9 % |
+| pp32768    |            598.86 t/s |                641.03 t/s |      +7.0 % |                    −3.8 % |
+| tg128      |             27.75 t/s |                 28.04 t/s |      +1.0 % |                    −1.4 % |
 
-| Test     | Combined Gen3+**Gen1** | Combined Gen3+**Gen2** | Δ      | vs Solo Gen3 (GPU 0)  |
-|----------|------------------------:|------------------------:|-------:|----------------------:|
-| pp1024   |             1265.70 t/s |             1300.77 t/s | +2.8 % |                 1.17× |
-| pp4096   |             1604.70 t/s |             1682.51 t/s | +4.8 % |                 1.61× |
-| pp32768  |             1153.24 t/s |             1210.40 t/s | +5.0 % |                 1.82× |
-| tg128    |               24.67 t/s |               24.00 t/s | −2.7 % |               −15.6 % |
+| Test       |    Combined Gen3+**Gen1** |    Combined Gen3+**Gen2** |        Δ |    vs Solo Gen3 (GPU 0) |
+| ---------- | ------------------------: | ------------------------: | -------: | ----------------------: |
+| pp1024     |               1265.70 t/s |               1300.77 t/s |   +2.8 % |                   1.17× |
+| pp4096     |               1604.70 t/s |               1682.51 t/s |   +4.8 % |                   1.61× |
+| pp32768    |               1153.24 t/s |               1210.40 t/s |   +5.0 % |                   1.82× |
+| tg128      |                 24.67 t/s |                 24.00 t/s |   −2.7 % |                 −15.6 % |
 
 - **Solo penalty on GPU 1 nearly eliminated.** After the Gen2 retrain, the gap to the Gen3 x8 GPU collapses from ~4–14 % to ~2–4 % across all PP contexts and to ~1 % on TG. The remaining gap at pp32768 (−3.8 %) is consistent with Gen2 x4 still being half the bandwidth of Gen3 x8 — long-context PP is the only test where that gap stays visible.
 - **Combined PP scaling improved at every context length** (+3 % at pp1024, +5 % at pp4096/pp32768). Most striking: pp32768 dual-GPU now reaches **1.82× solo Gen3** (up from 1.66× before), so the asymmetric-link tax on tensor-split long-context prompt processing is largely paid off.

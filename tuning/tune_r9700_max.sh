@@ -35,8 +35,6 @@ done
 
 log "Delegating to generic RDNA tuner with AMD Radeon AI PRO R9700 defaults..."
 # Default values chosen for the R9700 (Navi 48 / gfx1201):
-#   --gpus all            : apply to every detected R9700; override with
-#                           --gpus 1 or --gpus 0,1 (later --gpus wins)
 #   --memory-clock 1350   : max MCLK in MHz; the driver default is higher but
 #                           causes instability on this chip
 #   --undervolt-offset -75: VDDGFX core voltage offset in mV; reduces heat and
@@ -58,3 +56,17 @@ exec "$RDNA_SCRIPT" \
     --undervolt-offset -75 \
     --tdp 300 \
     "$@"
+# Removed flags (intentionally not applied on amdgpu DKMS 6.19.4):
+#
+#   --lock-mem-dpm-high     : only useful if DPM table actually has a 1350 step
+#   --lock-core-dpm-high    : default SMU scheduling is already optimal
+#
+# NOTE: 300 W is the real firmware ceiling on the R9700.  The kernel advertises
+# power1_cap_max=330 W but the SMU rejects anything above power1_cap_default
+# (300 W) with EIO ("Input/output error").  Don't bump --tdp above 300 here.
+#
+# CAVEAT: a `\` line continuation cannot be preceded by a commented-out flag in
+# the exec block above. `# ...flag... \` ends the logical command because `\`
+# inside a comment does NOT continue the line — bash sees `exec ... --gpus all`
+# only and silently drops every flag after the first comment. If you want to
+# disable a flag, delete the line entirely (don't just prefix it with `#`).

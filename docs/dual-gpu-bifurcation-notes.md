@@ -8,25 +8,25 @@ limitations.
 
 ## Test system
 
-| Component | Value |
-|-----------|-------|
-| Motherboard | ASRock B450 Fatal1ty Gaming-ITX/ac |
-| CPU | AMD Ryzen 7 5700G (Cezanne APU, Vega 8 iGPU) |
-| PCIe slots | 1× PCIe 3.0 x16 (CPU-direct) — bifurcation required for 2 GPUs |
+| Component         | Value                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Motherboard       | ASRock B450 Fatal1ty Gaming-ITX/ac                                                                                       |
+| CPU               | AMD Ryzen 7 5700G (Cezanne APU, Vega 8 iGPU)                                                                             |
+| PCIe slots        | 1× PCIe 3.0 x16 (CPU-direct) — bifurcation required for 2 GPUs                                                           |
 | Bifurcation riser | [AliExpress 1005004545109164 — x8x8 / x4x4x4x4 PCIe 3.0 splitter](https://www.aliexpress.com/item/1005004545109164.html) |
-| Riser cables | 2× PCIe 3.0 x8 ribbon extensions, 20 cm |
-| GPUs | 2× AMD Radeon AI PRO R9700 (Navi 48 / gfx1201, 32 GB each) |
-| OS | Ubuntu 25.10, kernel 6.17 |
+| Riser cables      | 2× PCIe 3.0 x8 ribbon extensions, 20 cm                                                                                  |
+| GPUs              | 2× AMD Radeon AI PRO R9700 (Navi 48 / gfx1201, 32 GB each)                                                               |
+| OS                | Ubuntu 25.10, kernel 6.17                                                                                                |
 
 ## Issue 1 — `x8/x8` bifurcation does **not** work on B450 with Cezanne
 
 ### Symptom
 
-| BIOS setting | Result |
-|--------------|--------|
+| BIOS setting    | Result                                                 |
+| --------------- | ------------------------------------------------------ |
 | `x16` (default) | Only **GPU #1** detected (expected — second slot dark) |
-| `x8/x8` | Only **GPU #2** detected (broken — first slot dark) |
-| `x8/x4/x4` | **Both GPUs detected** ✔ |
+| `x8/x8`         | Only **GPU #2** detected (broken — first slot dark)    |
+| `x8/x4/x4`      | **Both GPUs detected** ✔                               |
 
 ### Why
 
@@ -86,11 +86,11 @@ sudo lspci -vvv -s "$ROOT" | grep -E "LnkCap:|LnkSta:"
 
 Output interpretation:
 
-| `LnkSta` Speed | Meaning | Approx. usable bandwidth at x4 |
-|----------------|---------|--------------------------------|
-| `2.5GT/s` | **Gen1** — really running slow | ~1.0 GB/s |
-| `5.0GT/s` | Gen2 | ~2.0 GB/s |
-| `8.0GT/s` | **Gen3** — what we expected | ~3.94 GB/s |
+| `LnkSta` Speed   | Meaning                        | Approx. usable bandwidth at x4   |
+| ---------------- | ------------------------------ | -------------------------------- |
+| `2.5GT/s`        | **Gen1** — really running slow | ~1.0 GB/s                        |
+| `5.0GT/s`        | Gen2                           | ~2.0 GB/s                        |
+| `8.0GT/s`        | **Gen3** — what we expected    | ~3.94 GB/s                       |
 
 The `(downgraded)` annotation in `LnkSta` confirms link training fell back
 from `LnkCap` max. **`lspci` reads PCIe config space directly from the
@@ -112,11 +112,11 @@ time ./benchmark/bench-rocm7.sh --gpus 1 ~/.lmstudio/models/.../some-16GB-model.
 
 Rough expectations for a 16 GB model:
 
-| Link state | Expected load time |
-|------------|---------------------|
-| Gen3 x8 | ~4–5 s |
-| Gen3 x4 | ~8–10 s |
-| **Gen1 x4** | **~30–40 s** |
+| Link state   | Expected load time    |
+| ------------ | --------------------- |
+| Gen3 x8      | ~4–5 s                |
+| Gen3 x4      | ~8–10 s               |
+| **Gen1 x4**  | **~30–40 s**          |
 
 If GPU 1 takes 30 s+, the Gen1 cap is real.
 
@@ -126,9 +126,9 @@ Test conditions: 26.62 GiB Q8_0 Qwen3.6-27B model, page cache pre-primed
 (so disk I/O is eliminated), `llama-bench -ngl 99 -p 0 -n 1 -r 1`, 3 warm
 runs averaged.
 
-| GPU | Root port LnkSta | Wall time | Effective host→VRAM throughput |
-|-----|------------------|-----------|--------------------------------|
-| #1 `03:00.0` | `Speed 8GT/s, Width x8` (Gen3 x8) | **~5.3 s** | ~6.2 GB/s (≈ 79 % of Gen3 x8 theoretical) |
+| GPU          | Root port LnkSta                    | Wall time   | Effective host→VRAM throughput             |
+| ------------ | ----------------------------------- | ----------- | ------------------------------------------ |
+| #1 `03:00.0` | `Speed 8GT/s, Width x8` (Gen3 x8)   | **~5.3 s**  | ~6.2 GB/s (≈ 79 % of Gen3 x8 theoretical)  |
 | #2 `0f:00.0` | `Speed 2.5GT/s, Width x4` (Gen1 x4) | **~34.4 s** | ~0.85 GB/s (≈ 85 % of Gen1 x4 theoretical) |
 
 The **6.5× wall-time ratio** matches the theoretical Gen3 x8 / Gen1 x4
@@ -198,11 +198,11 @@ sudo systemctl status force-pcie-link.service
 Same `llama-bench -ngl 99 -p 0 -n 1 -r 1` test, 3 warm runs averaged, page
 cache pre-primed (so disk I/O is eliminated):
 
-| GPU | Root port LnkSta | Wall time | Effective throughput | tg1 |
-|-----|------------------|-----------|----------------------|-----|
-| #1 `03:00.0` (Gen3 x8, control) | `8GT/s × x8` | 5.25 s | ~6.2 GB/s | 10.07–10.49 tok/s |
-| #2 `0f:00.0` **before** (Gen1 x4) | `2.5GT/s × x4` | **34.4 s** | ~0.85 GB/s | 8.1 tok/s |
-| #2 `0f:00.0` **after** (Gen2 x4) | `5GT/s × x4` | **16.15 s** | ~1.69 GB/s | **10.08 tok/s** |
+| GPU                               | Root port LnkSta   | Wall time   | Effective throughput   | tg1               |
+| --------------------------------- | ------------------ | ----------- | ---------------------- | ----------------- |
+| #1 `03:00.0` (Gen3 x8, control)   | `8GT/s × x8`       | 5.25 s      | ~6.2 GB/s              | 10.07–10.49 tok/s |
+| #2 `0f:00.0` **before** (Gen1 x4) | `2.5GT/s × x4`     | **34.4 s**  | ~0.85 GB/s             | 8.1 tok/s         |
+| #2 `0f:00.0` **after** (Gen2 x4)  | `5GT/s × x4`       | **16.15 s** | ~1.69 GB/s             | **10.08 tok/s**   |
 
 - Model load time on GPU #2: **2.13× faster** (34.4 s → 16.15 s).
 - Decode throughput on GPU #2 jumped from 8.1 tok/s to 10.08 tok/s, now
@@ -309,12 +309,12 @@ pool.
 
 Lane layout on Ryzen 5700G (Cezanne, Zen 3 APU):
 
-| Lane group | Count | Where it goes | Reclaimable by disabling iGPU? |
-|---|---|---|---|
-| PCIe **3.0** x16 (GPP) | 16 | Primary GPU slot (the one you bifurcate) | No |
-| PCIe 3.0 x4 | 4 | M.2 / chipset uplink | No |
-| PCIe 3.0 x4 | 4 | Second M.2 / chipset | No |
-| Display PHYs (DP/HDMI) | — | Monitor outputs only | iGPU uses these, not PCIe lanes |
+| Lane group             | Count | Where it goes                            | Reclaimable by disabling iGPU?  |
+| ---------------------- | ----- | ---------------------------------------- | ------------------------------- |
+| PCIe **3.0** x16 (GPP) | 16    | Primary GPU slot (the one you bifurcate) | No                              |
+| PCIe 3.0 x4            | 4     | M.2 / chipset uplink                     | No                              |
+| PCIe 3.0 x4            | 4     | Second M.2 / chipset                     | No                              |
+| Display PHYs (DP/HDMI) | —     | Monitor outputs only                     | iGPU uses these, not PCIe lanes |
 
 Also worth knowing: **Cezanne is the lane-poor AM4 part**. The non-APU
 5800X/5900X (Vermeer) exposes the same 16 GPU lanes but at **PCIe 4.0** —
@@ -338,10 +338,10 @@ already capped at Gen3 on the GPU slot; no BIOS toggle can change that.
 
 ## Summary table
 
-| Symptom | Root cause | Workaround |
-|---------|-----------|-----------|
-| `x8/x8` BIOS → only 1 GPU detected | B450 AGESA does not validate `x8/x8` for Cezanne | Use `x8/x4/x4` mode instead |
-| Second GPU at Gen1 x4 not Gen3 x4 | BIOS pins Target Link Speed to Gen1 with SpeedDis set | Run `sudo ./tuning/force_pcie_link.sh` to retrain at Gen2 (~2× bandwidth); Gen3 unreachable on this riser. Not persistent — re-run after boot or enable `tuning/force-pcie-link.service` |
+| Symptom                            | Root cause                                            | Workaround                                                                                                                                                                               |
+| ---------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `x8/x8` BIOS → only 1 GPU detected | B450 AGESA does not validate `x8/x8` for Cezanne      | Use `x8/x4/x4` mode instead                                                                                                                                                              |
+| Second GPU at Gen1 x4 not Gen3 x4  | BIOS pins Target Link Speed to Gen1 with SpeedDis set | Run `sudo ./tuning/force_pcie_link.sh` to retrain at Gen2 (~2× bandwidth); Gen3 unreachable on this riser. Not persistent — re-run after boot or enable `tuning/force-pcie-link.service` |
 
 ## Recommended platform for dual R9700
 
@@ -372,10 +372,10 @@ bifurcation in BIOS.
 
 Outcome you can expect:
 
-| | Before (B450, `x8/x4/x4`) | After (B550, `x8/x8`) |
-|--|--|--|
-| GPU #1 | Gen3 x8 (~7.88 GB/s) | Gen3 x8 |
-| GPU #2 | Gen1 x4 (~1.0 GB/s) | **Gen3 x8 (~7.88 GB/s)** — ~8× faster |
+|        | Before (B450, `x8/x4/x4`) | After (B550, `x8/x8`)                 |
+| ------ | ------------------------- | ------------------------------------- |
+| GPU #1 | Gen3 x8 (~7.88 GB/s)      | Gen3 x8                               |
+| GPU #2 | Gen1 x4 (~1.0 GB/s)       | **Gen3 x8 (~7.88 GB/s)** — ~8× faster |
 
 Caveats when picking a B550 board:
 
