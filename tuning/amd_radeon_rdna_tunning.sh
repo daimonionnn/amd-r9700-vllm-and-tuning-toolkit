@@ -14,6 +14,11 @@ CORE_CLOCK_MAX_MHZ=""
 FAN_SPEED_PCT=""
 FAN_CURVE=""
 FAN_AUTO=0
+FAN_MINIMUM_PWM=""
+FAN_TARGET_TEMP=""
+ACOUSTIC_TARGET_RPM=""
+ACOUSTIC_LIMIT_RPM=""
+FAN_ZERO_RPM=""
 LOCK_MEM_DPM_HIGH=0
 LOCK_CORE_DPM_HIGH=0
 DRY_RUN=0
@@ -46,6 +51,18 @@ Options:
                           where T=hotspot temp (°C), P=fan speed (%). Temps must be ascending.
                           Example: "25 25 50 30 70 34 85 37 100 40"
   --fan-auto              Return fan to automatic/driver-controlled speed
+  --fan-minimum-pwm PCT   Set the minimum fan duty (%) the SMU is allowed to use
+                          (gpu_od fan_minimum_pwm). Range is read from the node.
+  --fan-target-temp C     Temperature (°C) the SMU tries to hold; below it the
+                          fan stays near the acoustic target, above it ramps to
+                          the acoustic limit (gpu_od fan_target_temperature).
+  --acoustic-target-rpm R Fan RPM the SMU keeps below until fan-target-temp is
+                          exceeded (gpu_od acoustic_target_rpm_threshold).
+  --acoustic-limit-rpm R  Maximum fan RPM the SMU will ramp to at/above the
+                          target temperature (gpu_od acoustic_limit_rpm_threshold).
+  --fan-zero-rpm 0|1      Enable (1) or disable (0) zero-RPM idle, i.e. whether
+                          the fan is allowed to stop when cool (gpu_od
+                          fan_zero_rpm_enable). Not supported on every SKU.
   --lock-mem-dpm-high     Mask pp_dpm_mclk to the highest DPM level so the SMU
                           cannot demote memory clock under load. Useful for
                           memory-bandwidth-bound workloads (LLM decode).
@@ -235,6 +252,38 @@ assert_in_range() {
     fi
 }
 
+# Generic setter for the single-value gpu_od/fan_ctrl/* nodes
+# (fan_minimum_pwm, fan_target_temperature, acoustic_*_rpm_threshold,
+# fan_zero_rpm_enable).  Each of these stages the value in an in-memory OD
+# table and only applies it once 'c' is written back to the same node, exactly
+# like fan_curve.  Validates against the node's own OD_RANGE when present.
+#   $1 fan_ctrl dir   $2 card name   $3 node filename
+#   $4 requested value   $5 OD_RANGE label   $6 human-readable label
+set_od_fan_scalar() {
+    local fan_dir="$1" card="$2" node_file="$3" value="$4" range_label="$5" human="$6"
+    local node="$fan_dir/$node_file"
+
+    if [[ -z "$fan_dir" || ! -w "$node" ]]; then
+        warn "$node_file not available/writable for $card; skipping $human"
+        return 0
+    fi
+
+    # Validate against the node's advertised OD_RANGE if it exposes one.
+    local node_dump rng rmin rmax
+    node_dump="$(read_file_trimmed "$node" || true)"
+    rng="$(sed -nE "s/^${range_label}:[[:space:]]*([-0-9]+)[[:space:]]+([-0-9]+).*$/\1 \2/p" <<< "$node_dump" | head -n1)"
+    if [[ -n "$rng" ]]; then
+        read -r rmin rmax <<< "$rng"
+        assert_in_range "$value" "$rmin" "$rmax" "$human"
+    fi
+
+    log "Setting $human: $value ($node_file)"
+    write_value "$value" "$node"
+    if ! try_write_value "c" "$node"; then
+        warn "$human commit ('c') was rejected; may not have taken effect"
+    fi
+}
+
 show_status() {
     local pci_id="$1"
     local card_name="$2"
@@ -270,6 +319,15 @@ show_status() {
     if [[ -n "$gpu_od_fan_dir" && -r "$gpu_od_fan_dir/fan_curve" ]]; then
         printf '\nfan_curve (gpu_od):\n'
         cat "$gpu_od_fan_dir/fan_curve"
+        local fan_node
+        for fan_node in fan_minimum_pwm fan_target_temperature \
+                        acoustic_target_rpm_threshold acoustic_limit_rpm_threshold \
+                        fan_zero_rpm_enable; do
+            if [[ -r "$gpu_od_fan_dir/$fan_node" ]]; then
+                printf '\n%s (gpu_od):\n' "$fan_node"
+                cat "$gpu_od_fan_dir/$fan_node"
+            fi
+        done
     fi
 }
 
@@ -319,6 +377,31 @@ parse_args() {
             --fan-auto)
                 FAN_AUTO=1
                 shift
+                ;;
+            --fan-minimum-pwm)
+                [[ $# -ge 2 ]] || die "--fan-minimum-pwm requires a value"
+                FAN_MINIMUM_PWM="$2"
+                shift 2
+                ;;
+            --fan-target-temp)
+                [[ $# -ge 2 ]] || die "--fan-target-temp requires a value"
+                FAN_TARGET_TEMP="$2"
+                shift 2
+                ;;
+            --acoustic-target-rpm)
+                [[ $# -ge 2 ]] || die "--acoustic-target-rpm requires a value"
+                ACOUSTIC_TARGET_RPM="$2"
+                shift 2
+                ;;
+            --acoustic-limit-rpm)
+                [[ $# -ge 2 ]] || die "--acoustic-limit-rpm requires a value"
+                ACOUSTIC_LIMIT_RPM="$2"
+                shift 2
+                ;;
+            --fan-zero-rpm)
+                [[ $# -ge 2 ]] || die "--fan-zero-rpm requires a value (0 or 1)"
+                FAN_ZERO_RPM="$2"
+                shift 2
                 ;;
             --lock-mem-dpm-high)
                 LOCK_MEM_DPM_HIGH=1
@@ -380,6 +463,20 @@ apply_to_gpu() {
     fi
     if [[ -n "$FAN_SPEED_PCT" && -n "$FAN_CURVE" ]]; then
         die "--fan-speed-pct and --fan-curve are mutually exclusive"
+    fi
+    if [[ -n "$FAN_MINIMUM_PWM" ]]; then
+        require_integer "$FAN_MINIMUM_PWM" "fan minimum pwm"
+        (( FAN_MINIMUM_PWM >= 0 && FAN_MINIMUM_PWM <= 100 )) || die "Fan minimum pwm must be 0-100, got: $FAN_MINIMUM_PWM"
+    fi
+    if [[ -n "$FAN_TARGET_TEMP" ]]; then require_integer "$FAN_TARGET_TEMP" "fan target temperature"; fi
+    if [[ -n "$ACOUSTIC_TARGET_RPM" ]]; then require_integer "$ACOUSTIC_TARGET_RPM" "acoustic target rpm"; fi
+    if [[ -n "$ACOUSTIC_LIMIT_RPM" ]]; then require_integer "$ACOUSTIC_LIMIT_RPM" "acoustic limit rpm"; fi
+    if [[ -n "$FAN_ZERO_RPM" ]]; then
+        [[ "$FAN_ZERO_RPM" == "0" || "$FAN_ZERO_RPM" == "1" ]] || die "--fan-zero-rpm must be 0 or 1, got: $FAN_ZERO_RPM"
+    fi
+    if [[ -n "$ACOUSTIC_TARGET_RPM" && -n "$ACOUSTIC_LIMIT_RPM" ]] \
+        && (( ACOUSTIC_TARGET_RPM > ACOUSTIC_LIMIT_RPM )); then
+        die "--acoustic-target-rpm ($ACOUSTIC_TARGET_RPM) cannot exceed --acoustic-limit-rpm ($ACOUSTIC_LIMIT_RPM)"
     fi
 
     local card_name card_path hwmon_dir gpu_od_fan_dir od_dump od_range mclk_range sclk_range vddgfx_range
@@ -457,8 +554,14 @@ apply_to_gpu() {
         fi
         if [[ -n "$gpu_od_fan_dir" && -w "$gpu_od_fan_dir/fan_curve" ]]; then
             log "Resetting gpu_od fan curve to driver defaults"
-            try_write_value "r" "$gpu_od_fan_dir/fan_curve" \
-                || warn "Could not reset gpu_od fan curve (firmware may have rejected EIO); leaving as-is"
+            if try_write_value "r" "$gpu_od_fan_dir/fan_curve"; then
+                # 'r' only stages the default table; a commit is required for
+                # the SMU to actually drop back to the driver-controlled curve.
+                try_write_value "c" "$gpu_od_fan_dir/fan_curve" \
+                    || warn "Fan curve reset commit ('c') was rejected; curve may not have reverted"
+            else
+                warn "Could not reset gpu_od fan curve (firmware may have rejected EIO); leaving as-is"
+            fi
         fi
 
         # Sanity report so asymmetric reset state is visible immediately.
@@ -628,6 +731,13 @@ apply_to_gpu() {
             write_value "2 70 ${clamped_pct}" "$gpu_od_fan_dir/fan_curve"
             write_value "3 85 ${clamped_pct}" "$gpu_od_fan_dir/fan_curve"
             write_value "4 100 ${clamped_pct}" "$gpu_od_fan_dir/fan_curve"
+            # The staged points above only modify the in-memory OD table; the
+            # SMU keeps using its previous curve until a commit ('c') is written.
+            # Without this the new values show up in a sysfs read-back but the
+            # fan never actually follows them.
+            if ! try_write_value "c" "$gpu_od_fan_dir/fan_curve"; then
+                warn "Fan curve commit ('c') was rejected; flat fan curve may not have taken effect"
+            fi
         elif [[ -n "$hwmon_dir" && -w "$hwmon_dir/pwm1" ]]; then
             local pwm_max=255
             [[ -r "$hwmon_dir/pwm1_max" ]] && pwm_max=$(<"$hwmon_dir/pwm1_max")
@@ -656,6 +766,13 @@ apply_to_gpu() {
                 log "  point ${pt}: ${t}C → ${p}%"
                 write_value "${pt} ${t} ${p}" "$gpu_od_fan_dir/fan_curve"
             done
+            # Staged points only modify the in-memory OD table. The SMU keeps
+            # using its previous curve until a commit ('c') is written, so the
+            # new curve shows up in a sysfs read-back but the fan never follows
+            # it without this step.
+            if ! try_write_value "c" "$gpu_od_fan_dir/fan_curve"; then
+                warn "Fan curve commit ('c') was rejected; fan curve may not have taken effect"
+            fi
         else
             warn "gpu_od fan_curve interface not available for $card_name; skipping fan curve"
         fi
@@ -663,6 +780,11 @@ apply_to_gpu() {
         if [[ -n "$gpu_od_fan_dir" && -w "$gpu_od_fan_dir/fan_curve" ]]; then
             log "Restoring gpu_od fan curve to driver defaults"
             write_value "r" "$gpu_od_fan_dir/fan_curve"
+            # 'r' stages the default table; commit it so the SMU actually
+            # returns to the driver-controlled curve.
+            if ! try_write_value "c" "$gpu_od_fan_dir/fan_curve"; then
+                warn "Fan curve reset commit ('c') was rejected; curve may not have reverted"
+            fi
         elif [[ -n "$hwmon_dir" && -e "$hwmon_dir/pwm1_enable" && -w "$hwmon_dir/pwm1_enable" ]]; then
             log "Restoring automatic fan control"
             write_value "2" "$hwmon_dir/pwm1_enable"
@@ -671,6 +793,30 @@ apply_to_gpu() {
         fi
     else
         log "Leaving fan control unchanged"
+    fi
+
+    # Independent single-value fan knobs. These shape how the SMU blends the
+    # curve with its acoustic targets, so they apply on top of (or instead of)
+    # the curve handled above. Each is a no-op unless its flag was passed.
+    if [[ -n "$FAN_MINIMUM_PWM" ]]; then
+        set_od_fan_scalar "$gpu_od_fan_dir" "$card_name" fan_minimum_pwm \
+            "$FAN_MINIMUM_PWM" MINIMUM_PWM "fan minimum pwm (%)"
+    fi
+    if [[ -n "$FAN_TARGET_TEMP" ]]; then
+        set_od_fan_scalar "$gpu_od_fan_dir" "$card_name" fan_target_temperature \
+            "$FAN_TARGET_TEMP" TARGET_TEMPERATURE "fan target temperature (°C)"
+    fi
+    if [[ -n "$ACOUSTIC_TARGET_RPM" ]]; then
+        set_od_fan_scalar "$gpu_od_fan_dir" "$card_name" acoustic_target_rpm_threshold \
+            "$ACOUSTIC_TARGET_RPM" ACOUSTIC_TARGET "acoustic target (rpm)"
+    fi
+    if [[ -n "$ACOUSTIC_LIMIT_RPM" ]]; then
+        set_od_fan_scalar "$gpu_od_fan_dir" "$card_name" acoustic_limit_rpm_threshold \
+            "$ACOUSTIC_LIMIT_RPM" ACOUSTIC_LIMIT "acoustic limit (rpm)"
+    fi
+    if [[ -n "$FAN_ZERO_RPM" ]]; then
+        set_od_fan_scalar "$gpu_od_fan_dir" "$card_name" fan_zero_rpm_enable \
+            "$FAN_ZERO_RPM" ZERO_RPM_ENABLE "fan zero-rpm enable"
     fi
 
     printf '\n'

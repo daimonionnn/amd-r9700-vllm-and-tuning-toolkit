@@ -17,9 +17,15 @@ Running `tune_r9700.sh` with no extra arguments calls the generic script and app
 
 - memory clock max: `1350 MHz`
 - undervolt offset: `-75 mV`
-- board power cap: `210 W`
-- fan curve: ramping 25% → 40% (see table below)
+- board power cap: `300 W`
+- fan curve: ramping 25% → 50% (see table below)
 - GPU core clock max: unchanged
+
+> **Note:** On the current ROCm 7.14 / amdgpu DKMS 6.19.4 stack, the memory-clock
+> overdrive and undervolt offset are effectively no-ops (or slightly hurt)
+> throughput for FP8 inference — see
+> [tuning/r9700_oc_uv_findings.md](tuning/r9700_oc_uv_findings.md). The fan curve
+> is the knob that actually matters acoustically.
 
 ## Usage
 
@@ -67,7 +73,7 @@ several forms — pick whichever is most convenient:
 | `--gpus 0000:03:00.0,0000:0f:00.0` | Explicit PCI BDFs (most robust)                   |
 
 Environment-variable fallback: `export RDNA_GPUS=...` is used when `--gpus`
-is not passed (handy for systemd units and the `tune_r9700-tune.service`).
+is not passed (handy for systemd units and the `r9700-tune.service`).
 
 The shared helper `lib/rdna_detect.sh` detects discrete RDNA cards by:
 
@@ -147,15 +153,28 @@ sudo ./tuning/tune_r9700.sh --fan-auto
 
 The R9700 (Navi 48) does **not** use the standard `hwmon/pwm1_enable` interface. Fan control is via the newer `gpu_od/fan_ctrl/fan_curve` sysfs API, which accepts a 5-point hotspot-temperature-to-fan-speed mapping.
 
+> **Commit required:** Writing the 5 curve points only stages them in the
+> in-memory OD table — the SMU keeps using its previous curve until a commit
+> (`c`) is written back to `fan_curve`. The new values *do* show up in a sysfs
+> read-back even when uncommitted, which makes it look like the curve is active
+> when it isn't. `amd_radeon_rdna_tunning.sh` writes that commit automatically
+> after staging the points (and after `--fan-auto` / `--reset`). The same applies
+> to the sibling nodes (`fan_minimum_pwm`, `fan_target_temperature`,
+> `acoustic_target_rpm_threshold`, `fan_zero_rpm_enable`).
+
 ### Default fan curve (`tune_r9700.sh`)
 
 | Point   | Hotspot temp  | Fan speed  |
 | ------- | ------------- | ---------- |
 | 0       | 25 °C         | 25%        |
-| 1       | 50 °C         | 30%        |
-| 2       | 70 °C         | 34%        |
-| 3       | 85 °C         | 37%        |
-| 4       | 100 °C        | 40%        |
+| 1       | 50 °C         | 25%        |
+| 2       | 70 °C         | 30%        |
+| 3       | 85 °C         | 40%        |
+| 4       | 100 °C        | 50%        |
+
+The quieter `tune_r9700_quiet.sh` profile tops out at 35% (25/25/30/30/35) with a
+210 W cap; `tune_r9700_max.sh` applies no fan curve and leaves the fan on the
+driver's automatic control.
 
 > **Hardware minimum:** The driver enforces a minimum of **25%** fan speed (`OD_RANGE: FAN_CURVE(fan speed): 25% 100%`). Any value below 25% is clamped automatically.
 
@@ -173,6 +192,34 @@ Example — aggressive curve for sustained compute:
 ```bash
 sudo ./tuning/tune_r9700.sh --fan-curve "25 30 50 45 70 60 85 80 100 100"
 ```
+
+### Other fan knobs
+
+The curve alone is not a strict lookup table — the SMU blends it with several
+acoustic targets. These are exposed as separate `gpu_od/fan_ctrl/*` nodes and
+can be set independently (each is range-validated against the node's own
+`OD_RANGE` and committed automatically):
+
+| Flag                          | Node                            | Meaning                                                                 |
+| ----------------------------- | ------------------------------- | ----------------------------------------------------------------------- |
+| `--fan-minimum-pwm PCT`       | `fan_minimum_pwm`               | Lowest fan duty the SMU may use (this card's floor is 25%).             |
+| `--fan-target-temp C`         | `fan_target_temperature`        | Temp the SMU holds; above it the fan ramps toward the acoustic limit.  |
+| `--acoustic-target-rpm RPM`   | `acoustic_target_rpm_threshold` | RPM the SMU stays under until the target temp is exceeded.              |
+| `--acoustic-limit-rpm RPM`    | `acoustic_limit_rpm_threshold`  | Max RPM the SMU ramps to at/above the target temp.                     |
+| `--fan-zero-rpm 0\|1`         | `fan_zero_rpm_enable`           | Allow the fan to fully stop when cool (not supported on every SKU).    |
+
+These combine with `--fan-curve` (or each other). Example — a curve that also
+lets the fan idle-stop and holds a higher target temperature before ramping:
+
+```bash
+sudo ./tuning/tune_r9700.sh \
+  --fan-curve "25 25 50 30 70 45 85 70 100 100" \
+  --fan-target-temp 80 \
+  --acoustic-target-rpm 1500 \
+  --fan-zero-rpm 1
+```
+
+Inspect the current values of all of these with `--status`.
 
 ## Important
 

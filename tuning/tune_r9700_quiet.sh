@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# tune_r9700.sh — Wrapper around amd_radeon_rdna_tunning.sh with opinionated
-# defaults for the AMD Radeon AI PRO R9700 (Navi 48 / gfx1201).
+# tune_r9700_quiet.sh — Wrapper around amd_radeon_rdna_tunning.sh with a quieter
+# acoustic profile for the AMD Radeon AI PRO R9700 (Navi 48 / gfx1201):
+# lower power cap (210 W) and a gentler fan curve than tune_r9700.sh.
 #
 # Run with no arguments to apply all defaults below.
 # Any flag passed on the command line is forwarded to the generic script and
@@ -39,15 +40,17 @@ log "Delegating to generic RDNA tuner with AMD Radeon AI PRO R9700 defaults..."
 #                           causes instability on this chip
 #   --undervolt-offset -75: VDDGFX core voltage offset in mV; reduces heat and
 #                           power draw without triggering crashes
-#   --tdp 210             : board power cap in watts; stock firmware allows ~230 W
+#   --tdp 210             : board power cap in watts; firmware floor for this card
 #   --fan-curve           : 5-point temperature-to-speed ramp written to
 #                           gpu_od/fan_ctrl/fan_curve (the Navi 48 interface).
-#                           25% is the hardware minimum enforced by the driver.
+#                           The generic script commits the curve ('c') so it
+#                           actually takes effect. 25% is the hardware minimum.
+#                           Quieter than tune_r9700.sh (tops out at 35%):
 #                             25°C → 25%  (idle)
-#                             50°C → 30%
-#                             70°C → 34%  (typical LLM inference load)
-#                             85°C → 37%
-#                            100°C → 40%  (peak)
+#                             50°C → 25%
+#                             70°C → 30%  (typical LLM inference load)
+#                             85°C → 30%
+#                            100°C → 35%  (peak)
 #   "$@"                  : any flags passed by the caller are forwarded last,
 #                           so they override the above defaults
 exec "$RDNA_SCRIPT" \

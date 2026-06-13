@@ -1,6 +1,6 @@
 [Unit]
 Description=AMD Radeon AI PRO R9700 GPU Tuning (Navi 48 / gfx1201)
-Documentation=https://github.com/your-repo/AMD-RDNA-LLM-Toolkit
+Documentation=https://github.com/daimonionnn/amd-r9700-vllm-and-tuning-toolkit
 # Run after the system is fully up and the amdgpu driver has settled.
 After=multi-user.target
 # Ensure the service runs after the amdgpu DRM device is available.
@@ -14,7 +14,7 @@ User=root
 # Auto-detect the primary user's home dir (UID 1000) at boot time so no
 # username or path needs to be hardcoded.  The result is written to a
 # volatile tmpfs file and loaded as an EnvironmentFile.
-ExecStartPre=/bin/sh -c 'echo "TOOLKIT_DIR=$(getent passwd 1000 | cut -d: -f6)/development/AMD-RDNA-LLM-Toolkit" > /run/r9700-tune.env'
+ExecStartPre=/bin/sh -c 'echo "TOOLKIT_DIR=$(getent passwd 1000 | cut -d: -f6)/development/amd-r9700-vllm-and-tuning-toolkit" > /run/r9700-tune.env'
 ExecStartPre=/bin/sleep 3
 EnvironmentFile=/run/r9700-tune.env
 ExecStart=${TOOLKIT_DIR}/tuning/tune_r9700.sh

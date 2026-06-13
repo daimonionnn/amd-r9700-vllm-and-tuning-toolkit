@@ -4,7 +4,7 @@
 #
 # Run with no arguments to apply all defaults below.
 # Any flag passed on the command line is forwarded to the generic script and
-# will override the corresponding default (e.g. --tdp 180 overrides the 210 W
+# will override the corresponding default (e.g. --tdp 180 overrides the 300 W
 # default; --fan-curve overrides the built-in curve).
 # --reset is handled specially: it bypasses all defaults and resets the card
 # to driver defaults via the generic script.
@@ -39,15 +39,18 @@ log "Delegating to generic RDNA tuner with AMD Radeon AI PRO R9700 defaults..."
 #                           causes instability on this chip
 #   --undervolt-offset -75: VDDGFX core voltage offset in mV; reduces heat and
 #                           power draw without triggering crashes
-#   --tdp 210             : board power cap in watts; stock firmware allows ~230 W
+#   --tdp 300             : board power cap in watts; 300 W is the real firmware
+#                           ceiling (the kernel advertises 330 W but the SMU
+#                           rejects anything above 300 W — see r9700_oc_uv_findings.md)
 #   --fan-curve           : 5-point temperature-to-speed ramp written to
 #                           gpu_od/fan_ctrl/fan_curve (the Navi 48 interface).
-#                           25% is the hardware minimum enforced by the driver.
+#                           The generic script commits the curve ('c') so it
+#                           actually takes effect. 25% is the hardware minimum.
 #                             25°C → 25%  (idle)
-#                             50°C → 30%
-#                             70°C → 34%  (typical LLM inference load)
-#                             85°C → 37%
-#                            100°C → 40%  (peak)
+#                             50°C → 25%
+#                             70°C → 30%  (typical LLM inference load)
+#                             85°C → 40%
+#                            100°C → 50%  (peak)
 #   "$@"                  : any flags passed by the caller are forwarded last,
 #                           so they override the above defaults
 exec "$RDNA_SCRIPT" \
