@@ -521,4 +521,40 @@ decode with 64 % MTP acceptance) is identical either way.
 > `--max-num-seqs 2`; raise `VLLM_MAX_NUM_SEQS` for higher aggregate throughput at
 > the cost of per-request latency.
 
+### Prefill tuning: closing the gap to community runs (June 17, 2026)
+
+A community member reported ~2567 t/s pp2048@d4096 on the *same* `aml731/vllm-aiter:v0.20.2`
+image, vs our ~1841. Investigation (see [vllm/rdna4-fp8-findings.md](../vllm/rdna4-fp8-findings.md))
+ruled out every hardware and most software levers:
+
+- **Hardware is optimal** — both cards PCIe 5.0 x8, trained to max, symmetric; 300 W; `auto`; no undervolt.
+- **AITER linear/quant fast path is impossible on gfx1201** — `aiter.jit.module_quant` fails to
+  compile (`__builtin_amdgcn_raw_ptr_buffer_load_lds needs target feature vmem-to-lds-load-insts`),
+  so `VLLM_ROCM_USE_AITER_LINEAR=1` is correctly disabled for everyone on this image.
+- **Native FP8 WMMA is already in the image** — `gfx1201` is already in `on_mi3xx()` and the FP8 path
+  uses `w8a8_triton_block_scaled_mm`, not naive dequant-to-FP32. No 2× to recover there.
+- **Tuned FP8 block configs aren't downloadable** — vLLM upstream ships zero R9700 configs; the image's
+  R9700 configs are for DeepSeek shapes, not Qwen3.6-27B (5 shapes fall back to a default). Self-tuning
+  them is a multi-hour CPU-bound Triton grind for a bounded gain.
+
+A reproducible community run on [localmaxxing](https://www.localmaxxing.com) (2× R9700, self-patched
+vLLM) lands at **1965 t/s prefill** — i.e. ~1841–1965 is the real ceiling for this hardware/model, and
+the 2567 is an outlier (different depth/warmup or a private tuned-config pack). Adopting a few of that
+run's launch flags closes most of the gap with **no patching or tuning**:
+
+| config (pp2048 / tg32, d4096 / d8132)             | pp@d4096 | pp@d8132 | tg@d4096 | tg@d8132 |
+| ------------------------------------------------- | -------: | -------: | -------: | -------: |
+| baseline (pre-tuning)                             |  1840.9  |  1786.1  |   80.5   |   71.0   |
+| **+`max-num-batched-tokens 8192` +`disable-custom-all-reduce`** (committed) | **1893.6** | **1839.4** | **81.6** | **72.2** |
+| + `kv-cache-dtype fp8`                             |  1959.6  |  1928.5  |   80.8   |   65.1 ⚠️ |
+| + `max-num-seqs 1` (single-stream)                |  1903.5  |  1849.7  |   81.1   | **80.7** |
+
+- **Committed default:** `--max-num-batched-tokens 8192` + `--disable-custom-all-reduce` →
+  **+~3 % prefill, decode unchanged**, no downside. Baked into
+  `docker/docker-compose.aiter-0202.tp2-r9700.yml`.
+- `--kv-cache-dtype fp8` adds another ~3 % prefill but costs ~20 % deep-context decode (71→65) — **not**
+  worth it as a default.
+- `--max-num-seqs 1` (single-stream serving) recovers/boosts deep-context decode (72→81) and adds a
+  little prefill, at the cost of concurrency. Set `VLLM_MAX_NUM_SEQS=1` if you run one request at a time.
+
 

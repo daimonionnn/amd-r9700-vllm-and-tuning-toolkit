@@ -66,6 +66,8 @@ services:
       --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTIL:-0.95}
       --max-num-seqs ${VLLM_MAX_NUM_SEQS:-2}
       --enable-chunked-prefill
+      --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}
+      --disable-custom-all-reduce
       --enable-prefix-caching
       --trust-remote-code
       --quantization ${VLLM_QUANTIZATION:-fp8}
