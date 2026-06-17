@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.aiter-0202.2x-r9700.yml"
+COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.aiter-0202.tp2-r9700.yml"
 VLLM_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 IMAGE="${IMAGE:-aml731/vllm-aiter:v0.20.2}"

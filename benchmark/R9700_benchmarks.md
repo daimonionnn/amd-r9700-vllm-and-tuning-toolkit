@@ -442,4 +442,83 @@ ggml_cuda_init: found 2 ROCm devices (Total VRAM: 65248 MiB):
 - **Combined TG dipped slightly (24.67 → 24.00 t/s, −2.7 %).** Run-to-run variance is plausible, but a real small regression isn't implausible either: with the slower link sped up, ROCm may now schedule more per-token cross-GPU traffic than before. Still well within the expected single-batch split-decode penalty vs solo Gen3.
 - **Bottom line:** the `setpci` retrain converts GPU 1 from a clearly-handicapped second-class member into a near-peer of the Gen3 x8 GPU for inference. PP throughput is now the headline win; TG is essentially flat.
 
+---
+
+## vLLM TP=2 — Intel Z890 platform migration (June 17, 2026)
+
+Re-test after migrating the 2× R9700 from the Ryzen 5700G / B450 board (PCIe Gen3
+x8 + bifurcated Gen1/Gen2 x4 second card) to a new Intel platform. **No code
+changes were needed for GPU plumbing** — auto-detection, iGPU exclusion and the
+index-based TP2 stack all work unchanged (one blocking bug was fixed: the docker
+bench scripts referenced a nonexistent `docker-compose.aiter-0202.2x-r9700.yml`,
+now repointed to `…tp2-r9700.yml`).
+
+**New hardware:** Intel Core Ultra 5 250K Plus, ASUS ProArt Z890-Creator,
+96 GB DDR5-6000 CL30, 2× R9700 at PCIe 5.0 (BDFs `0000:03:00.0` + `0000:07:00.0`
+— the second card's BDF changed from the old `0f:00.0`). Intel Arrow Lake iGPU
+present but unused (vendor-filtered out by `rdna_detect.sh`).
+
+**Stack:** docker `aml731/vllm-aiter:v0.20.2`, `Qwen/Qwen3.6-27B-FP8`, TP=2,
+`ROCM_AITER_UNIFIED_ATTN`, MTP speculative decode (`num_speculative_tokens=3`),
+`--max-num-seqs 2`, 300 W default power cap. Both GPUs ran at 100 % / ~245–250 W;
+RCCL all-reduce completed with 0 failed requests, confirming the cross-GPU path
+is healthy on the new link.
+
+> **PCIe width note:** sysfs `current_link_speed`/`current_link_width` reports
+> `32 GT/s x16` even at 11 W idle, i.e. it shows the card's max capability, not
+> the live-negotiated width. Confirm the real per-slot width with
+> `sudo lspci -vv -s 03:00.0 -s 07:00.0 | grep LnkSta`. Either way it is PCIe 5.0
+> (16–32 GB/s) vs the old second card's ~0.85–1.7 GB/s.
+
+### llama-benchy (`bench_llama_benchy.sh`, depths 4096/8132)
+
+| model                |           test |        t/s (new) |   peak t/s |   ttfr (ms) |
+| :------------------- | -------------: | ---------------: | ---------: | ----------: |
+| Qwen/Qwen3.6-27B-FP8 | pp2048 @ d4096 |      **1840.89** |            |     3339.04 |
+| Qwen/Qwen3.6-27B-FP8 |   tg32 @ d4096 |        **80.46** |      83.05 |             |
+| Qwen/Qwen3.6-27B-FP8 | pp2048 @ d8132 |      **1786.05** |            |     5701.25 |
+| Qwen/Qwen3.6-27B-FP8 |   tg32 @ d8132 |        **71.00** |      73.29 |             |
+
+**vs old platform (TP=2):** the README's documented old-TP2 reference had prefill
+collapsing to ~333–620 t/s on the bifurcated Gen1/Gen2 x4 lanes. New prefill of
+~1786–1841 t/s is a **~3–5.5× improvement** — full PCIe 5.0 removes the cross-GPU
+sync bottleneck that previously made TP2 unusable.
+
+> Note: the earlier saved `llama_benchy_20260601_105457` result (pp2048 ≈ 3116 t/s,
+> tg32 ≈ 17.9 t/s) is a **PP=2** run, not TP=2 — its high-prefill/low-decode shape
+> is PP's signature. On the old rig PP=2 was the only workable dual-GPU mode. On
+> the new platform TP=2 recovers ~1800 t/s prefill **and** keeps ~80 t/s decode
+> (vs PP=2's ~18 t/s) — the best of both, which the bifurcated rig could not do.
+
+### vllm bench serve (100 prompts × 1024 in / 512 out, `--max-num-seqs 2`)
+
+Two runs: `request_rate=inf` (saturation throughput) and `--max-concurrency 2`
+(client matched to the server's 2-seq cap, so the latency numbers are real). As
+expected the server cap is the bottleneck — throughput and wall time are
+identical between the two; only the latency metrics differ.
+
+| metric                          | request_rate=inf | --max-concurrency 2 |
+| :------------------------------ | ---------------: | ------------------: |
+| Successful / failed requests    |     100 / 0      |      100 / 0        |
+| Benchmark duration              |      515.98 s    |       518.20 s      |
+| Output token throughput         |    99.23 tok/s   |     98.80 tok/s     |
+| Total token throughput          |   299.70 tok/s   |    298.41 tok/s     |
+| Mean / P99 TPOT (decode)        |  18.89 / 22.83 ms |   18.90 / 24.14 ms  |
+| Mean / median TTFT              | 252703 / 250595 ms ⚠️ | **664.8 / 631.3 ms** |
+| Mean / median E2EL              |  262356 ms ⚠️     |  **10321 / 10510 ms** |
+| MTP acceptance rate / length    |  64.81 % / 2.94  |    64.36 % / 2.93   |
+
+⚠️ The `request_rate=inf` TTFT/E2EL are **queuing artifacts** — all 100 prompts are
+submitted at once against a 2-sequence server cap, so 98 requests sit in the queue.
+Use the `--max-concurrency 2` column for real latency: **~665 ms mean TTFT**, ~10.3 s
+end-to-end for a 1024-in / 512-out request. TPOT (~18.9 ms, ~53 tok/s/req steady
+decode with 64 % MTP acceptance) is identical either way.
+
+> **Not directly comparable to the old findings-doc entry** (585 total / 65 output
+> tok/s, 3m16s): that run used a different server config (plain cudagraph, no
+> 2-seq cap) and a different throughput definition, so this is **not** a regression.
+> Throughput here is intentionally low because the server is capped at
+> `--max-num-seqs 2`; raise `VLLM_MAX_NUM_SEQS` for higher aggregate throughput at
+> the cost of per-request latency.
+
 

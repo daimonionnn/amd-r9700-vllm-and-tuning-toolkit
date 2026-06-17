@@ -1,3 +1,8 @@
+# Distinct project name so `up`/`down` on the PP2 stack never reconciles or
+# clobbers the TP2 stack's containers (both files otherwise default to the
+# "docker" directory name as the compose project).
+name: vllm-r9700-pp2
+
 services:
   vllm:
     image: ${VLLM_IMAGE:-aml731/vllm-aiter:v0.20.2}

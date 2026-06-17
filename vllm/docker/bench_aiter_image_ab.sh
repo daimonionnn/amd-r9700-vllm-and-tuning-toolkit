@@ -5,7 +5,7 @@ set -euo pipefail
 # bench_aiter_image_ab.sh
 #
 # One-command A/B benchmark for 2x R9700 Docker images using the
-# compose profile in docker-compose.aiter-0202.2x-r9700.yml.
+# compose profile in docker-compose.aiter-0202.tp2-r9700.yml.
 #
 # It runs two passes for each context depth:
 #   - PP-like pass: output_len=1   (prefill-heavy)
@@ -16,7 +16,7 @@ set -euo pipefail
 # ================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.aiter-0202.2x-r9700.yml"
+COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.aiter-0202.tp2-r9700.yml"
 VLLM_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 BASE_IMAGE="${BASE_IMAGE:-aml731/vllm-aiter:v0.19.1}"

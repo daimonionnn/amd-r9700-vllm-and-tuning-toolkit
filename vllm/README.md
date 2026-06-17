@@ -112,3 +112,19 @@ When splitting Qwen 3.6 27B across 2x R9700 GPUs on restricted PCIe links, Pipel
 
 **Tensor Parallelism (TP=2) Reference (Low Prefill on heavily bifurcated lanes):**
 Without Pipeline Parallelism on a PCIe Gen2 x2/x4 bottleneck, prefill drops significantly (~333-620 t/s) as the constant cross-GPU syncing crushes the available link bandwidth.
+
+**TP=2 on full PCIe 5.0 (June 17, 2026 — Intel Z890 platform):** with both R9700s on
+a non-bifurcated PCIe 5.0 link, TP=2 prefill recovers to ~1786–1841 t/s (~3–5.5× the
+bifurcated numbers above) **and** keeps high decode (~71–80 t/s vs PP=2's ~18 t/s):
+
+| model                |           test |            t/s |   peak t/s |
+| :------------------- | -------------: | -------------: | ---------: |
+| Qwen/Qwen3.6-27B-FP8 | pp2048 @ d4096 |        1840.89 |            |
+| Qwen/Qwen3.6-27B-FP8 |   tg32 @ d4096 |          80.46 |      83.05 |
+| Qwen/Qwen3.6-27B-FP8 | pp2048 @ d8132 |        1786.05 |            |
+| Qwen/Qwen3.6-27B-FP8 |   tg32 @ d8132 |          71.00 |      73.29 |
+
+So **PCIe bandwidth — not TP itself — was the problem.** On restricted/bifurcated
+lanes prefer **PP=2**; on a full PCIe 4.0/5.0 x8+ link per card, **TP=2** is the better
+all-round choice (high prefill *and* high decode). Full results and caveats:
+[../benchmark/R9700_benchmarks.md](../benchmark/R9700_benchmarks.md#vllm-tp2--intel-z890-platform-migration-june-17-2026).

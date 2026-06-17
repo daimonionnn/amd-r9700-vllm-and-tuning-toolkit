@@ -119,6 +119,16 @@ Hardware: 2× AMD R9700 (gfx1201), BDFs `0000:03:00.0` + `0000:0f:00.0`, vLLM 0.
 
 → On this workload **firmware defaults beat the tuned profile by ~4.5 %**. The result is independent of undervolt magnitude — -50, -70 and -75 mV all collapse to ~560 tok/s (run-to-run noise band). The MCLK OD value is irrelevant here because it is silently capped (see DPM section below). **The undervolt itself is the cause**: the SMU treats any VDDGFX offset as a stability hint and shaves boost frequencies regardless of how small the offset is.
 
+> **Platform migration update (June 17, 2026):** the above May-30 TP=2 numbers were
+> taken on the Ryzen 5700G / B450 rig where the second card was stuck on a bifurcated
+> Gen1/Gen2 x4 link, which crippled TP=2 (prefill ~333–620 t/s) and forced PP=2.
+> After moving both R9700s to a new Intel Core Ultra 5 250K / Z890 board at full
+> PCIe 5.0, TP=2 prefill recovers to ~1786–1841 t/s (~3–5.5×) while keeping ~80 t/s
+> decode. Full results, methodology and caveats:
+> [../benchmark/R9700_benchmarks.md](../benchmark/R9700_benchmarks.md#vllm-tp2--intel-z890-platform-migration-june-17-2026).
+> The OC/UV conclusions below are unchanged (still a driver/firmware property, not
+> platform-dependent).
+
 ### Power-cap firmware limits
 
 - `power1_cap_min` = **210 W** (firmware floor, not a knob we set).

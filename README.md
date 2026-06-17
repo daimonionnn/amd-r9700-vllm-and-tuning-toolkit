@@ -259,13 +259,22 @@ Quick links:
 
 ## Tested Environment
 
-This script was tested on the following system configuration:
+Validated on two systems (the dual-GPU tooling and benchmarks have been run on both):
 
-**Hardware:**
+**Current rig — Intel (full PCIe 5.0, dual R9700):**
+- **CPU**: Intel Core Ultra 5 250K Plus
+- **Mainboard**: ASUS ProArt Z890-Creator
+- **GPU**: 2× AMD Radeon AI PRO R9700 (Navi 48), each on PCIe 5.0
+- **RAM**: 96 GB DDR5-6000 CL30
+- **Kernel**: Linux 6.17.0-35-generic x86_64
+
+**Original rig — AMD (bifurcated PCIe, see [docs/dual-gpu-bifurcation-notes.md](docs/dual-gpu-bifurcation-notes.md)):**
 - **CPU**: AMD Ryzen 7 5700G
-- **GPU**: AMD Radeon AI PRO R9700 (Navi 48)
+- **GPU**: 1–2× AMD Radeon AI PRO R9700 (Navi 48)
 - **RAM**: 64 GB
-
-**Software:**
 - **OS**: Ubuntu 25.10
 - **Kernel**: Linux 6.17.0-23-generic x86_64
+
+> The migration from the bifurcated AMD rig to the full-PCIe-5.0 Intel rig made
+> vLLM **TP=2** viable again (~3–5.5× prefill recovery) — see
+> [benchmark/R9700_benchmarks.md](benchmark/R9700_benchmarks.md#vllm-tp2--intel-z890-platform-migration-june-17-2026).

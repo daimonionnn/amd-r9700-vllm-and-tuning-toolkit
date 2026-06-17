@@ -395,3 +395,42 @@ Caveats when picking a B550 board:
   already marginal (one half fell to Gen1), the *other* slot may now hit
   similar signal-integrity limits. Shorter or re-driver cables are a cheap
   insurance buy.
+
+## Resolution — platform migration to Intel Z890 (June 2026)
+
+The bifurcation/Gen1 saga above was ultimately resolved the way the
+"Recommended platform" section predicted: by moving off the lane-poor
+B450 + Cezanne combo entirely. The 2× R9700 now run in a modern Intel build.
+
+| Component   | Old (B450 + 5700G)                         | New (Z890 + Core Ultra)                     |
+| ----------- | ------------------------------------------ | ------------------------------------------- |
+| CPU         | AMD Ryzen 7 5700G (Cezanne APU)            | Intel Core Ultra 5 250K Plus                |
+| Motherboard | ASRock B450 Fatal1ty Gaming-ITX/ac         | ASUS ProArt Z890-Creator                    |
+| RAM         | 64 GB DDR4                                  | 96 GB DDR5-6000 CL30                         |
+| GPU links   | `x8/x4/x4` bifurcation; #2 stuck Gen1/Gen2 x4 | Both cards on PCIe 5.0, no bifurcation tricks |
+| iGPU        | Vega 8 (Cezanne, on Infinity Fabric)       | Intel Arrow Lake (vendor-filtered, unused)  |
+
+### BDF change
+
+The second card's PCI BDF changed with the new board topology. Anything that
+referenced the old BDF by hand needs updating; the toolkit's auto-detection
+(`lib/rdna_detect.sh`) handles it transparently, so no scripts required edits.
+
+| Card         | Old platform BDF | New platform BDF |
+| ------------ | ---------------- | ---------------- |
+| GPU #1       | `0000:03:00.0`   | `0000:03:00.0`   |
+| GPU #2       | `0000:0f:00.0`   | `0000:07:00.0`   |
+
+> The `GPU=0000:0f:00.0` example earlier in this document and the benchmark
+> tables above are kept as the **historical B450 record**; on the current rig
+> the second card is `0000:07:00.0`.
+
+### Outcome
+
+Full PCIe 5.0 on both cards removed the cross-GPU bandwidth bottleneck that
+forced Pipeline Parallelism on the old rig. vLLM **TP=2** prefill recovered from
+~333–620 t/s (bifurcated) to ~1786–1841 t/s (~3–5.5×) while keeping high decode —
+see [../benchmark/R9700_benchmarks.md](../benchmark/R9700_benchmarks.md#vllm-tp2--intel-z890-platform-migration-june-17-2026).
+The `setpci` Gen2 retrain, `force_pcie_link.sh` and the bifurcation BIOS dance
+are no longer needed on the new platform (they remain documented here for anyone
+still on B450/AM4).
