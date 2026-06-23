@@ -164,13 +164,13 @@ The R9700 (Navi 48) does **not** use the standard `hwmon/pwm1_enable` interface.
 
 ### Default fan curve (`tune_r9700.sh`)
 
-| Point   | Hotspot temp  | Fan speed  |
-| ------- | ------------- | ---------- |
-| 0       | 25 °C         | 25%        |
-| 1       | 50 °C         | 25%        |
-| 2       | 70 °C         | 30%        |
-| 3       | 85 °C         | 40%        |
-| 4       | 100 °C        | 50%        |
+| Point | Hotspot temp | Fan speed |
+| ----- | ------------ | --------- |
+| 0     | 25 °C        | 25%       |
+| 1     | 50 °C        | 25%       |
+| 2     | 70 °C        | 30%       |
+| 3     | 85 °C        | 40%       |
+| 4     | 100 °C       | 50%       |
 
 The quieter `tune_r9700_quiet.sh` profile tops out at 35% (25/25/30/30/35) with a
 210 W cap; `tune_r9700_max.sh` applies no fan curve and leaves the fan on the
@@ -200,13 +200,13 @@ acoustic targets. These are exposed as separate `gpu_od/fan_ctrl/*` nodes and
 can be set independently (each is range-validated against the node's own
 `OD_RANGE` and committed automatically):
 
-| Flag                          | Node                            | Meaning                                                                 |
-| ----------------------------- | ------------------------------- | ----------------------------------------------------------------------- |
-| `--fan-minimum-pwm PCT`       | `fan_minimum_pwm`               | Lowest fan duty the SMU may use (this card's floor is 25%).             |
-| `--fan-target-temp C`         | `fan_target_temperature`        | Temp the SMU holds; above it the fan ramps toward the acoustic limit.  |
-| `--acoustic-target-rpm RPM`   | `acoustic_target_rpm_threshold` | RPM the SMU stays under until the target temp is exceeded.              |
-| `--acoustic-limit-rpm RPM`    | `acoustic_limit_rpm_threshold`  | Max RPM the SMU ramps to at/above the target temp.                     |
-| `--fan-zero-rpm 0\|1`         | `fan_zero_rpm_enable`           | Allow the fan to fully stop when cool (not supported on every SKU).    |
+| Flag                        | Node                            | Meaning                                                               |
+| --------------------------- | ------------------------------- | --------------------------------------------------------------------- |
+| `--fan-minimum-pwm PCT`     | `fan_minimum_pwm`               | Lowest fan duty the SMU may use (this card's floor is 25%).           |
+| `--fan-target-temp C`       | `fan_target_temperature`        | Temp the SMU holds; above it the fan ramps toward the acoustic limit. |
+| `--acoustic-target-rpm RPM` | `acoustic_target_rpm_threshold` | RPM the SMU stays under until the target temp is exceeded.            |
+| `--acoustic-limit-rpm RPM`  | `acoustic_limit_rpm_threshold`  | Max RPM the SMU ramps to at/above the target temp.                    |
+| `--fan-zero-rpm 0\|1`       | `fan_zero_rpm_enable`           | Allow the fan to fully stop when cool (not supported on every SKU).   |
 
 These combine with `--fan-curve` (or each other). Example — a curve that also
 lets the fan idle-stop and holds a higher target temperature before ramping:

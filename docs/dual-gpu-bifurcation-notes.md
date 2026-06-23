@@ -86,11 +86,11 @@ sudo lspci -vvv -s "$ROOT" | grep -E "LnkCap:|LnkSta:"
 
 Output interpretation:
 
-| `LnkSta` Speed   | Meaning                        | Approx. usable bandwidth at x4   |
-| ---------------- | ------------------------------ | -------------------------------- |
-| `2.5GT/s`        | **Gen1** — really running slow | ~1.0 GB/s                        |
-| `5.0GT/s`        | Gen2                           | ~2.0 GB/s                        |
-| `8.0GT/s`        | **Gen3** — what we expected    | ~3.94 GB/s                       |
+| `LnkSta` Speed | Meaning                        | Approx. usable bandwidth at x4 |
+| -------------- | ------------------------------ | ------------------------------ |
+| `2.5GT/s`      | **Gen1** — really running slow | ~1.0 GB/s                      |
+| `5.0GT/s`      | Gen2                           | ~2.0 GB/s                      |
+| `8.0GT/s`      | **Gen3** — what we expected    | ~3.94 GB/s                     |
 
 The `(downgraded)` annotation in `LnkSta` confirms link training fell back
 from `LnkCap` max. **`lspci` reads PCIe config space directly from the
@@ -112,11 +112,11 @@ time ./benchmark/bench-rocm7.sh --gpus 1 ~/.lmstudio/models/.../some-16GB-model.
 
 Rough expectations for a 16 GB model:
 
-| Link state   | Expected load time    |
-| ------------ | --------------------- |
-| Gen3 x8      | ~4–5 s                |
-| Gen3 x4      | ~8–10 s               |
-| **Gen1 x4**  | **~30–40 s**          |
+| Link state  | Expected load time |
+| ----------- | ------------------ |
+| Gen3 x8     | ~4–5 s             |
+| Gen3 x4     | ~8–10 s            |
+| **Gen1 x4** | **~30–40 s**       |
 
 If GPU 1 takes 30 s+, the Gen1 cap is real.
 
@@ -198,11 +198,11 @@ sudo systemctl status force-pcie-link.service
 Same `llama-bench -ngl 99 -p 0 -n 1 -r 1` test, 3 warm runs averaged, page
 cache pre-primed (so disk I/O is eliminated):
 
-| GPU                               | Root port LnkSta   | Wall time   | Effective throughput   | tg1               |
-| --------------------------------- | ------------------ | ----------- | ---------------------- | ----------------- |
-| #1 `03:00.0` (Gen3 x8, control)   | `8GT/s × x8`       | 5.25 s      | ~6.2 GB/s              | 10.07–10.49 tok/s |
-| #2 `0f:00.0` **before** (Gen1 x4) | `2.5GT/s × x4`     | **34.4 s**  | ~0.85 GB/s             | 8.1 tok/s         |
-| #2 `0f:00.0` **after** (Gen2 x4)  | `5GT/s × x4`       | **16.15 s** | ~1.69 GB/s             | **10.08 tok/s**   |
+| GPU                               | Root port LnkSta | Wall time   | Effective throughput | tg1               |
+| --------------------------------- | ---------------- | ----------- | -------------------- | ----------------- |
+| #1 `03:00.0` (Gen3 x8, control)   | `8GT/s × x8`     | 5.25 s      | ~6.2 GB/s            | 10.07–10.49 tok/s |
+| #2 `0f:00.0` **before** (Gen1 x4) | `2.5GT/s × x4`   | **34.4 s**  | ~0.85 GB/s           | 8.1 tok/s         |
+| #2 `0f:00.0` **after** (Gen2 x4)  | `5GT/s × x4`     | **16.15 s** | ~1.69 GB/s           | **10.08 tok/s**   |
 
 - Model load time on GPU #2: **2.13× faster** (34.4 s → 16.15 s).
 - Decode throughput on GPU #2 jumped from 8.1 tok/s to 10.08 tok/s, now
@@ -402,13 +402,13 @@ The bifurcation/Gen1 saga above was ultimately resolved the way the
 "Recommended platform" section predicted: by moving off the lane-poor
 B450 + Cezanne combo entirely. The 2× R9700 now run in a modern Intel build.
 
-| Component   | Old (B450 + 5700G)                         | New (Z890 + Core Ultra)                     |
-| ----------- | ------------------------------------------ | ------------------------------------------- |
-| CPU         | AMD Ryzen 7 5700G (Cezanne APU)            | Intel Core Ultra 5 250K Plus                |
-| Motherboard | ASRock B450 Fatal1ty Gaming-ITX/ac         | ASUS ProArt Z890-Creator                    |
-| RAM         | 64 GB DDR4                                  | 96 GB DDR5-6000 CL30                         |
+| Component   | Old (B450 + 5700G)                            | New (Z890 + Core Ultra)                       |
+| ----------- | --------------------------------------------- | --------------------------------------------- |
+| CPU         | AMD Ryzen 7 5700G (Cezanne APU)               | Intel Core Ultra 5 250K Plus                  |
+| Motherboard | ASRock B450 Fatal1ty Gaming-ITX/ac            | ASUS ProArt Z890-Creator                      |
+| RAM         | 64 GB DDR4                                    | 96 GB DDR5-6000 CL30                          |
 | GPU links   | `x8/x4/x4` bifurcation; #2 stuck Gen1/Gen2 x4 | Both cards on PCIe 5.0, no bifurcation tricks |
-| iGPU        | Vega 8 (Cezanne, on Infinity Fabric)       | Intel Arrow Lake (vendor-filtered, unused)  |
+| iGPU        | Vega 8 (Cezanne, on Infinity Fabric)          | Intel Arrow Lake (vendor-filtered, unused)    |
 
 ### BDF change
 
@@ -416,10 +416,10 @@ The second card's PCI BDF changed with the new board topology. Anything that
 referenced the old BDF by hand needs updating; the toolkit's auto-detection
 (`lib/rdna_detect.sh`) handles it transparently, so no scripts required edits.
 
-| Card         | Old platform BDF | New platform BDF |
-| ------------ | ---------------- | ---------------- |
-| GPU #1       | `0000:03:00.0`   | `0000:03:00.0`   |
-| GPU #2       | `0000:0f:00.0`   | `0000:07:00.0`   |
+| Card   | Old platform BDF | New platform BDF |
+| ------ | ---------------- | ---------------- |
+| GPU #1 | `0000:03:00.0`   | `0000:03:00.0`   |
+| GPU #2 | `0000:0f:00.0`   | `0000:07:00.0`   |
 
 > The `GPU=0000:0f:00.0` example earlier in this document and the benchmark
 > tables above are kept as the **historical B450 record**; on the current rig

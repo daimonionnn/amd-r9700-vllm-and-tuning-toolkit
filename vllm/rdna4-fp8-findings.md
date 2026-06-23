@@ -67,12 +67,12 @@ the new `allreduce_rms_fusion` path), so the newer tag is not a simple upgrade.
 Borrowed from a reproducible 2× R9700 localmaxxing run (1965 t/s prefill). Benched
 pp2048/tg32 at d4096/d8132, `--runs 1`:
 
-| config                                            | pp@d4096 | pp@d8132 | tg@d4096 | tg@d8132 |
-| ------------------------------------------------- | -------: | -------: | -------: | -------: |
-| baseline                                          |  1840.9  |  1786.1  |   80.5   |   71.0   |
+| config                                                      |   pp@d4096 |   pp@d8132 | tg@d4096 | tg@d8132 |
+| ----------------------------------------------------------- | ---------: | ---------: | -------: | -------: |
+| baseline                                                    |     1840.9 |     1786.1 |     80.5 |     71.0 |
 | **+max-num-batched-tokens 8192 +disable-custom-all-reduce** | **1893.6** | **1839.4** | **81.6** | **72.2** |
-| + kv-cache-dtype fp8                              |  1959.6  |  1928.5  |   80.8   |   65.1   |
-| + max-num-seqs 1 (single-stream)                 |  1903.5  |  1849.7  |   81.1   |   80.7   |
+| + kv-cache-dtype fp8                                        |     1959.6 |     1928.5 |     80.8 |     65.1 |
+| + max-num-seqs 1 (single-stream)                            |     1903.5 |     1849.7 |     81.1 |     80.7 |
 
 **Committed default** (`docker/docker-compose.aiter-0202.tp2-r9700.yml`):
 `--max-num-batched-tokens 8192` + `--disable-custom-all-reduce` → +~3 % prefill, decode

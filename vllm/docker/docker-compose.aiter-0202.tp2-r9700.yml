@@ -62,7 +62,7 @@ services:
       --dtype ${VLLM_DTYPE:-auto}
       --attention-backend ROCM_AITER_UNIFIED_ATTN
       --compilation-config '{"pass_config":{"fuse_norm_quant":false}}'
-      --max-model-len ${VLLM_MAX_MODEL_LEN:-131072}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-262144}
       --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTIL:-0.95}
       --max-num-seqs ${VLLM_MAX_NUM_SEQS:-2}
       --enable-chunked-prefill
