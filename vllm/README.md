@@ -117,6 +117,12 @@ Without Pipeline Parallelism on a PCIe Gen2 x2/x4 bottleneck, prefill drops sign
 a non-bifurcated PCIe 5.0 link, TP=2 prefill recovers to ~1786–1841 t/s (~3–5.5× the
 bifurcated numbers above) **and** keeps high decode (~71–80 t/s vs PP=2's ~18 t/s):
 
+> **⚠️ Lower bound, not the ceiling.** One of the two cards used for these numbers
+> (Samsung/F40) has a factory thermal-interface defect that throttles it ~6–10 %;
+> under TP=2 it gates the healthy card, so a matched, well-cooled pair should reach
+> ~1965 t/s prefill from the hardware alone. See
+> [../docs/r9700-mem-vendor-bios-variance.md](../docs/r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks).
+
 | model                |           test |     t/s | peak t/s |
 | :------------------- | -------------: | ------: | -------: |
 | Qwen/Qwen3.6-27B-FP8 | pp2048 @ d4096 | 1840.89 |          |

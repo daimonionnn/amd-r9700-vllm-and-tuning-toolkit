@@ -134,7 +134,7 @@ Hardware: 2× AMD R9700 (gfx1201), BDFs `0000:03:00.0` + `0000:0f:00.0`, vLLM 0.
 - `power1_cap_min` = **210 W** (firmware floor, not a knob we set).
 - `power1_cap_default` = **300 W**.
 - `power1_cap_max` advertises **330 W** but the SMU rejects any write above 300 W with `EIO ("Input/output error")`. **300 W is the real ceiling** on this card/firmware.
-- `amd_radeon_rdna_tunning.sh` now catches the EIO, warns, and falls back to default instead of aborting.
+- `amd_radeon_rdna_tuning.sh` now catches the EIO, warns, and falls back to default instead of aborting.
 
 ### DPM (PowerPlay) table — actual reachable clocks
 
@@ -155,7 +155,7 @@ pp_dpm_sclk:  S:0    1:500           2:2350 MHz                ← max = 2350 MH
 
 - Without any DPM pinning, the SMU bounces MCLK through every level (`96 / 456 / 772 / 875 / 1124 / 1258` MHz) during inference, including dropping to 96 MHz between micro-batches. Both cards switch synchronously.
 - During the FP8 bench the cards drew **150–200 W** of the 300 W cap — the workload is *not* power-limited at this seq length; it is dominated by prefill and (during decode) by the SMU's aggressive memory-clock demotion heuristic.
-- `amd_radeon_rdna_tunning.sh` gained `--lock-mem-dpm-high` / `--lock-core-dpm-high` flags that mask `pp_dpm_mclk` / `pp_dpm_sclk` to the top DPM level. Useful to test, but on this driver it only pins to 1258 MHz (not 1350), so the upside is small. The flags are *not* enabled by default in `tune_r9700_max.sh`.
+- `amd_radeon_rdna_tuning.sh` gained `--lock-mem-dpm-high` / `--lock-core-dpm-high` flags that mask `pp_dpm_mclk` / `pp_dpm_sclk` to the top DPM level. Useful to test, but on this driver it only pins to 1258 MHz (not 1350), so the upside is small. The flags are *not* enabled by default in `tune_r9700_max.sh`.
 
 ### Tuning script bugs found and fixed
 

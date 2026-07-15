@@ -196,7 +196,7 @@ cd ../vllm
 
 Each benchmark run automatically logs the `llama-bench` output into a timestamped text file inside the `results` directory (e.g., `results/benchmark_results_20260513_153000.txt`).
 
-These results logs can be used to compare baseline performance before and after tuning (e.g., overclocking VRAM or undervolting the core via `amd_radeon_rdna_tunning.sh`).
+These results logs can be used to compare baseline performance before and after tuning (e.g., overclocking VRAM or undervolting the core via `amd_radeon_rdna_tuning.sh`).
 
 ---
 

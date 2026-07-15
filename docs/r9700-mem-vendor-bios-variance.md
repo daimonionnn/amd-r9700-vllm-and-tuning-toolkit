@@ -9,10 +9,17 @@
 
 The two "identical" R9700s are **not** identical silicon. They differ in GDDR6 **memory vendor** and **VBIOS revision**, and they tune differently as a result. Tune each card independently — never clone offsets.
 
-- **card1 (03:00.0, SK Hynix, VBIOS F50):** core undervolt **−70 mV**, memory at default.
-- **card2 (07:00.0, Samsung, VBIOS F40):** core undervolt **−30 mV** (conservative), memory at default. The flakier card.
+- **card1 (03:00.0, SK Hynix, VBIOS F50):** core undervolt **−70 mV**, memory at default. The healthy card.
+- **card2 (07:00.0, Samsung, VBIOS F40):** core undervolt **−30 mV** (conservative), memory at default. The flakier card, and — the key finding — it has a **factory thermal-interface defect** (see "Thermal investigation" below): it hits the ~110 °C junction throttle at ~70 W less power and ~340 MHz lower core than card1, so it runs ~6–10 % slower on prefill even though the silicon is fine.
+- **This depresses the repo's dual-GPU TP=2 prefill numbers.** vLLM TP=2 drives both cards in lockstep, so the throttled card2 gates the healthy card1 — the pair's ~1841–1894 t/s prefill is a *lower bound*. A healthy, well-cooled pair should land higher (a reproducible community 2× R9700 run reaches ~1965, and one report claims ~2500). See ["Consequence for the TP=2 prefill benchmarks"](#consequence-for-the-tp2-prefill-benchmarks).
 - **Memory OC (1349 MHz) is not worth it on either card** — pointless on Hynix, actively harmful on Samsung.
 - **Governor: `auto`.** Forcing `high`/`manual` regresses throughput.
+
+> **Hardware status (2026-07):** the defective card2 has been sent back on an RMA
+> (warranty) claim and the healthy card1 (Hynix) was sold, so the pair described
+> here no longer exists as a unit. The project is **on hold** until replacement
+> hardware is available — see the [root README](../README.md#project-status). The
+> findings below stand as the record of what these two specific cards did.
 
 ## Hardware identity — what differs and what doesn't
 
@@ -143,7 +150,30 @@ Both cards hit the **~110 °C junction throttle limit**, but card2 reaches it at
 
 **Conclusion:** card2's ~6–10 % deficit (and its inability to use the full power budget) is a **thermal-interface defect** (repaste/cooler reseat fixes it), not silicon variance. This supersedes the "weaker silicon bin" wording in the section above — with equal cooling card2 would likely match card1. It is a credible warranty/RMA case (excessive hotspot delta + premature thermal throttling).
 
-## Final recommended config
+## Consequence for the TP=2 prefill benchmarks
+
+This defect is **not** a single-card curiosity — it caps the headline dual-GPU
+number in this repo. vLLM TP=2 shards every layer across both GPUs and syncs them
+per step, so the pair runs only as fast as its **slower** card. With card2
+throttling ~6–10 % below card1 on prefill, the pair's measured TP=2 prefill of
+**~1841 t/s** (baseline) / **~1894 t/s** (with the committed launch flags) is a
+**lower bound gated by the defective card**, not the platform ceiling.
+
+That reframes the FP8 investigation in [rdna4-fp8-findings.md](rdna4-fp8-findings.md),
+which concluded "hardware is optimal / symmetric" and treated ~1841–1965 t/s as the
+ceiling. The hardware was **not** symmetric: card2's cooling defect explains why our
+pair sat at the *bottom* of that range while an independent, reproducible 2× R9700
+run on [localmaxxing](https://www.localmaxxing.com) reached **~1965 t/s** — roughly
+the ~6–7 % that card2's throttle costs. (The community's ~2567 t/s remains an
+outlier, likely different bench depth/warmup or a private tuned-config pack.)
+
+**Implication:** with two healthy, well-cooled cards (or after card2's cooler is
+reseated/RMA-fixed), TP=2 prefill should recover toward ~1965 t/s **from the
+hardware alone**, before any of the software levers in
+[rdna4-fp8-findings.md](rdna4-fp8-findings.md) are stacked on top. Any future re-test
+must first confirm both cards hold full clocks at the power cap (`rocm-smi`
+junction/edge/power telemetry) so a thermal defect isn't silently capping the result
+again — see the reusable method in `benchmark/thermal-test.sh` / `thermal-log.sh`.
 
 ## Final recommended config
 
@@ -159,4 +189,4 @@ gpus:
     voltage_offset: -30
 ```
 
-Both undervolted, neither memory-OC'd, both on the auto governor. Related: [r9700_oc_uv_findings.md](r9700_oc_uv_findings.md).
+Both undervolted, neither memory-OC'd, both on the auto governor. Related: [r9700-oc-uv-findings.md](r9700-oc-uv-findings.md).

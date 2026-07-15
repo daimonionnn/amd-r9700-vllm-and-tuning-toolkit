@@ -7,20 +7,32 @@ what was ruled out and the configuration that closed most of the gap.
 
 ## TL;DR
 
-- The hardware and the image's FP8 fast path are both fine; **~1841–1965 t/s is the
-  real prefill ceiling** for this hardware + model + stack (an independent
-  [localmaxxing](https://www.localmaxxing.com) 2× R9700 run lands at 1965). The 2567
-  is an outlier (different bench depth/warmup or a private tuned-config pack).
+- The image's FP8 fast path is fine and **~1965 t/s is the real prefill ceiling** for
+  this model + stack on a *healthy* 2× R9700 pair (an independent
+  [localmaxxing](https://www.localmaxxing.com) run lands at 1965). The 2567 is an
+  outlier (different bench depth/warmup or a private tuned-config pack).
+- **Correction (added after this investigation):** the hardware in *our* rig was
+  **not** symmetric. The second card has a factory thermal-interface defect that
+  throttles it ~6–10 %, and under TP=2 it gates the pair — which is exactly why our
+  ~1841 sits at the bottom of the 1841–1965 range while a healthy pair reaches ~1965.
+  So the software levers below were the *smaller* half of the story; the bigger lever
+  was the defective cooler. Full analysis:
+  [r9700-mem-vendor-bios-variance.md](r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks).
 - A few launch flags from that community run give **+~3 % prefill with no downside**
   and are now the committed default (see below).
 
 ## Levers investigated
 
-### Hardware — optimal, not the bottleneck
-- Both cards negotiate **PCIe 5.0 x8 at the root port**, trained to max, symmetric
+### Hardware — PCIe/power fine, but cooling was NOT symmetric
+- Both cards negotiate **PCIe 5.0 x8 at the root port**, trained to max
   (read past the on-card PCIe switch — the GPU endpoint's `current_link_*` always
   shows the internal switch link `32 GT/s x16` and is misleading).
 - `power1_cap` = 300 W, `power_dpm_force_performance_level` = `auto`, no undervolt.
+- **But not thermally symmetric.** This section originally concluded "hardware is
+  optimal, not the bottleneck." That was wrong: card2 (Samsung/F40) has a factory
+  thermal-interface defect and throttles ~6–10 % below card1, gating the TP=2 pair.
+  PCIe and power were fine; **cooling was the real hardware bottleneck.** See
+  [r9700-mem-vendor-bios-variance.md](r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks).
 
 ### AITER linear/quant fast path — impossible on gfx1201
 `VLLM_ROCM_USE_AITER_LINEAR=1` (and `fuse_norm_quant:true`) crash at startup because

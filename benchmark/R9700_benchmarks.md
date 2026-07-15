@@ -49,7 +49,7 @@ Command: llama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-communi
 ----------------------------------------------------------
  Benchmarking Model: gemma-4-31B-it-Q4_K_M.gguf
 ----------------------------------------------------------
-Command: lama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/gemma-4-31B-it-GGUF/gemma-4-31B-it-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
+Command: llama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/gemma-4-31B-it-GGUF/gemma-4-31B-it-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
 
 
 | model                    |      size |  params | backend | ngl |  fa |    test |           t/s |
@@ -65,7 +65,7 @@ Command: lama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-communit
 ----------------------------------------------------------
  Benchmarking Model: gemma-4-26B-A4B-it-Q4_K_M.gguf
 ----------------------------------------------------------
-Command: lama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/gemma-4-26B-A4B-it-GGUF/gemma-4-26B-A4B-it-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
+Command: llama.cpp-vulkan/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/gemma-4-26B-A4B-it-GGUF/gemma-4-26B-A4B-it-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
 
 
 | model                    |      size |  params | backend | ngl |  fa |    test |             t/s |
@@ -102,7 +102,7 @@ ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
 ----------------------------------------------------------
  Benchmarking Model: gemma-4-31B-it-Q4_K_M.gguf
 ----------------------------------------------------------
-Command: lama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/gemma-4-31B-it-GGUF/gemma-4-31B-it-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
+Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/gemma-4-31B-it-GGUF/gemma-4-31B-it-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
 
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
@@ -144,7 +144,7 @@ ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
 ----------------------------------------------------------
  Benchmarking Model: Qwen3.6-27B-Q4_K_M.gguf
 ----------------------------------------------------------
-Command: lama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/Qwen3.6-27B-GGUF/Qwen3.6-27B-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
+Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/Qwen3.6-27B-GGUF/Qwen3.6-27B-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
 
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
@@ -203,7 +203,7 @@ ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
 ----------------------------------------------------------
  Benchmarking Model: Qwen3.6-27B-Q4_K_M.gguf
 ----------------------------------------------------------
-Command: lama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/Qwen3.6-27B-GGUF/Qwen3.6-27B-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
+Command: llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/Qwen3.6-27B-GGUF/Qwen3.6-27B-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
 
 ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
@@ -257,7 +257,7 @@ ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
 
 TheRock nightly 7.14.0~20260522
 
-Benchmark run with preset /tunning/tune_r9700_max.sh
+Benchmark run with preset /tuning/tune_r9700_max.sh
 ( memory-clock 1350, undervolt-offset -120m, tdp 300 )
 
 
@@ -273,7 +273,7 @@ rocm-smi --setperflevel auto
 ----------------------------------------------------------
 Command: llm/llama.cpp-rocm/bin/llama-bench -m ~/.lmstudio/models/lmstudio-community/Qwen3.6-27B-GGUF/Qwen3.6-27B-Q4_K_M.gguf -ngl 99 -fa 1 -p 1024,4096,32768 -n 128
 
-gml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                    |      size |  params | backend | ngl |  fa |    test |            t/s |
 | ------------------------ | --------: | ------: | ------- | --: | --: | ------: | -------------: |
@@ -287,7 +287,7 @@ gml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
 ## Dual-GPU PCIe Bifurcation Benchmarks
    GPU 0 (0000:03:00.0): R9700 at PCIe Gen3 x8
    GPU 1 (0000:0f:00.0): R9700 at PCIe Gen1 x4
-   Tune preset: /tunning/tune_r9700_max.sh (memory-clock 1350, undervolt-offset -120mV, tdp 300W)
+   Tune preset: /tuning/tune_r9700_max.sh (memory-clock 1350, undervolt-offset -120mV, tdp 300W)
    PCIe ASPM: performance
    Performance level: auto
    llama.cpp build: a9883db8e (9127)
@@ -359,7 +359,7 @@ ggml_cuda_init: found 2 ROCm devices (Total VRAM: 65248 MiB):
 ## Dual-GPU PCIe Bifurcation Benchmarks — after `setpci` retrain to Gen2 x4
    GPU 0 (0000:03:00.0): R9700 at PCIe Gen3 x8 (unchanged)
    GPU 1 (0000:0f:00.0): R9700 at **PCIe Gen2 x4** (was Gen1 x4 — see ../tuning/force_pcie_link.sh and ../docs/dual-gpu-bifurcation-notes.md)
-   Tune preset: /tunning/tune_r9700_max.sh (memory-clock 1350, undervolt-offset -120mV, tdp 300W)
+   Tune preset: /tuning/tune_r9700_max.sh (memory-clock 1350, undervolt-offset -120mV, tdp 300W)
    PCIe ASPM: performance
    Performance level: auto
    llama.cpp build: a9883db8e (9127)
@@ -446,6 +446,13 @@ ggml_cuda_init: found 2 ROCm devices (Total VRAM: 65248 MiB):
 
 ## vLLM TP=2 — Intel Z890 platform migration (June 17, 2026)
 
+> **⚠️ These TP=2 prefill numbers are gated by a thermally-defective card.** The
+> second card (Samsung/F40) has a factory thermal-interface defect and throttles
+> ~6–10 % below the first; because TP=2 runs both cards in lockstep, it drags the
+> pair down. Treat the ~1841–1894 t/s prefill below as a **lower bound** — a healthy
+> pair should reach ~1965 t/s from the hardware alone. Full analysis:
+> [../docs/r9700-mem-vendor-bios-variance.md](../docs/r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks).
+
 Re-test after migrating the 2× R9700 from the Ryzen 5700G / B450 board (PCIe Gen3
 x8 + bifurcated Gen1/Gen2 x4 second card) to a new Intel platform. **No code
 changes were needed for GPU plumbing** — auto-detection, iGPU exclusion and the
@@ -524,7 +531,7 @@ decode with 64 % MTP acceptance) is identical either way.
 ### Prefill tuning: closing the gap to community runs (June 17, 2026)
 
 A community member reported ~2567 t/s pp2048@d4096 on the *same* `aml731/vllm-aiter:v0.20.2`
-image, vs our ~1841. Investigation (see [vllm/rdna4-fp8-findings.md](../vllm/rdna4-fp8-findings.md))
+image, vs our ~1841. Investigation (see [docs/rdna4-fp8-findings.md](../docs/rdna4-fp8-findings.md))
 ruled out every hardware and most software levers:
 
 - **Hardware is optimal** — both cards PCIe 5.0 x8, trained to max, symmetric; 300 W; `auto`; no undervolt.
@@ -538,9 +545,13 @@ ruled out every hardware and most software levers:
   them is a multi-hour CPU-bound Triton grind for a bounded gain.
 
 A reproducible community run on [localmaxxing](https://www.localmaxxing.com) (2× R9700, self-patched
-vLLM) lands at **1965 t/s prefill** — i.e. ~1841–1965 is the real ceiling for this hardware/model, and
-the 2567 is an outlier (different depth/warmup or a private tuned-config pack). Adopting a few of that
-run's launch flags closes most of the gap with **no patching or tuning**:
+vLLM) lands at **1965 t/s prefill**, and the 2567 is an outlier (different depth/warmup or a private
+tuned-config pack). Note that **our pair cannot reach 1965 on the hardware alone**: the second card's
+factory thermal defect throttles it ~6–10 % and gates the TP=2 pair, which is precisely why we sit at
+~1841 while a healthy pair reaches ~1965 (see
+[../docs/r9700-mem-vendor-bios-variance.md](../docs/r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks)).
+Adopting a few of that run's launch flags still closes most of the *software* gap with **no patching or
+tuning**:
 
 | config (pp2048 / tg32, d4096 / d8132)                                       |   pp@d4096 |   pp@d8132 | tg@d4096 | tg@d8132 |
 | --------------------------------------------------------------------------- | ---------: | ---------: | -------: | -------: |

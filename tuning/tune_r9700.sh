@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tune_r9700.sh — Wrapper around amd_radeon_rdna_tunning.sh with opinionated
+# tune_r9700.sh — Wrapper around amd_radeon_rdna_tuning.sh with opinionated
 # defaults for the AMD Radeon AI PRO R9700 (Navi 48 / gfx1201).
 #
 # Run with no arguments to apply all defaults below.
@@ -17,7 +17,7 @@ log() {
 # Resolve the generic tuner relative to this script so the wrapper works from
 # any working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RDNA_SCRIPT="$SCRIPT_DIR/amd_radeon_rdna_tunning.sh"
+RDNA_SCRIPT="$SCRIPT_DIR/amd_radeon_rdna_tuning.sh"
 
 if [[ ! -x "$RDNA_SCRIPT" ]]; then
     log "Error: Required script $RDNA_SCRIPT is missing or not executable." >&2
@@ -41,7 +41,7 @@ log "Delegating to generic RDNA tuner with AMD Radeon AI PRO R9700 defaults..."
 #                           power draw without triggering crashes
 #   --tdp 300             : board power cap in watts; 300 W is the real firmware
 #                           ceiling (the kernel advertises 330 W but the SMU
-#                           rejects anything above 300 W — see r9700_oc_uv_findings.md)
+#                           rejects anything above 300 W — see docs/r9700-oc-uv-findings.md)
 #   --fan-curve           : 5-point temperature-to-speed ramp written to
 #                           gpu_od/fan_ctrl/fan_curve (the Navi 48 interface).
 #                           The generic script commits the curve ('c') so it

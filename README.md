@@ -1,14 +1,35 @@
 # AMD Radeon RDNA LLM Tuning Toolkit
 
-This workspace includes scripts organised into four folders:
+## Project status
+
+**On hold (2026-07).** This project targeted a specific 2× R9700 rig that no longer
+exists as a unit: the second card (Samsung/F40) turned out to have a **factory
+thermal-interface defect** and has been returned on a warranty/RMA claim, and the
+healthy first card (Hynix/F50) was sold. Without the hardware the tuning and
+benchmarks can't be re-run or improved further.
+
+It may resume if the RMA card is repaired/replaced and a second card is re-acquired.
+In the meantime the docs, scripts and findings are kept as a reference. Open ideas for
+when it restarts live in [docs/TODO.md](docs/TODO.md).
+
+> **Reading the benchmark numbers?** The headline dual-GPU **TP=2 prefill
+> (~1841–1894 t/s)** is a *lower bound* — the defective card2 throttled and gated the
+> pair under TP=2. A healthy pair should reach ~1965 t/s from the hardware alone;
+> details in
+> [docs/r9700-mem-vendor-bios-variance.md](docs/r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks).
+
+## Layout
+
+This workspace includes scripts organised into these folders:
 
 - **`tuning/`** — `amdgpu` sysfs overdrive tuning scripts
 - **`llm/`** — ROCm install + llama.cpp source / compiled runtimes (and the heavy vLLM build artefacts: `vllm-venv/`, `vllm-src/`, `flash-attention/`)
 - **`vllm/`** — vLLM tooling (now split into `vllm/baremetal/` and `vllm/docker/`). See [vllm/README.md](vllm/README.md).
 - **`benchmark/`** — llama.cpp Vulkan + ROCm benchmarking scripts and results
+- **`docs/`** — written-up findings, field notes and investigations. Start at [docs/README.md](docs/README.md).
 
 ### Tuning scripts
-1. `tuning/amd_radeon_rdna_tunning.sh`: A generic script for tuning *any* AMD Radeon RDNA GPU. By default, it applies no hardware limits unless explicitly requested through command-line parameters.
+1. `tuning/amd_radeon_rdna_tuning.sh`: A generic script for tuning *any* AMD Radeon RDNA GPU. By default, it applies no hardware limits unless explicitly requested through command-line parameters.
 2. `tuning/tune_r9700.sh`: A specific wrapper script for the AMD Radeon AI PRO R9700 that provides default parameter limits.
 
 ## Default behavior (tune_r9700.sh)
@@ -24,7 +45,7 @@ Running `tune_r9700.sh` with no extra arguments calls the generic script and app
 > **Note:** On the current ROCm 7.14 / amdgpu DKMS 6.19.4 stack, the memory-clock
 > overdrive and undervolt offset are effectively no-ops (or slightly hurt)
 > throughput for FP8 inference — see
-> [tuning/r9700_oc_uv_findings.md](tuning/r9700_oc_uv_findings.md). The fan curve
+> [docs/r9700-oc-uv-findings.md](docs/r9700-oc-uv-findings.md). The fan curve
 > is the knob that actually matters acoustically.
 
 ## Usage
@@ -157,7 +178,7 @@ The R9700 (Navi 48) does **not** use the standard `hwmon/pwm1_enable` interface.
 > in-memory OD table — the SMU keeps using its previous curve until a commit
 > (`c`) is written back to `fan_curve`. The new values *do* show up in a sysfs
 > read-back even when uncommitted, which makes it look like the curve is active
-> when it isn't. `amd_radeon_rdna_tunning.sh` writes that commit automatically
+> when it isn't. `amd_radeon_rdna_tuning.sh` writes that commit automatically
 > after staging the points (and after `--fan-auto` / `--reset`). The same applies
 > to the sibling nodes (`fan_minimum_pwm`, `fan_target_temperature`,
 > `acoustic_target_rpm_threshold`, `fan_zero_rpm_enable`).

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tune_r9700_quiet.sh — Wrapper around amd_radeon_rdna_tunning.sh with a quieter
+# tune_r9700_quiet.sh — Wrapper around amd_radeon_rdna_tuning.sh with a quieter
 # acoustic profile for the AMD Radeon AI PRO R9700 (Navi 48 / gfx1201):
 # lower power cap (210 W) and a gentler fan curve than tune_r9700.sh.
 #
@@ -18,7 +18,7 @@ log() {
 # Resolve the generic tuner relative to this script so the wrapper works from
 # any working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RDNA_SCRIPT="$SCRIPT_DIR/amd_radeon_rdna_tunning.sh"
+RDNA_SCRIPT="$SCRIPT_DIR/amd_radeon_rdna_tuning.sh"
 
 if [[ ! -x "$RDNA_SCRIPT" ]]; then
     log "Error: Required script $RDNA_SCRIPT is missing or not executable." >&2
