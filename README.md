@@ -1,4 +1,4 @@
-# AMD Radeon RDNA LLM Tuning Toolkit
+# AMD Radeon 9700 AI PRO RDNA vLLM Tuning Toolkit
 
 ## Project status
 
