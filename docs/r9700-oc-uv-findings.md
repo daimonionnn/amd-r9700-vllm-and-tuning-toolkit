@@ -7,7 +7,7 @@ Community findings from [RDNA4 Llama Experiments — Squeezing Every Token/s fro
 ## LACT Settings (reported by zedbytes)
 
 | Setting            | Value    |
-| ------------------ | -------- |
+|--------------------|----------|
 | Power limit        | 210 W    |
 | GPU Clock Offset   | -500 MHz |
 | Max VRAM Clock     | 2518 MHz |
@@ -91,7 +91,11 @@ GRUB_CMDLINE_LINUX_DEFAULT="amdgpu.runpm=0 pcie_aspm.policy=performance amdgpu.r
 ```
 
 > `amdgpu.runpm=0` is added to prevent GPU wake-up issues (without it, `rocminfo`
-> may fail to detect the GPU on some systems).
+> may fail to detect the GPU on some systems). It also fixes a second, less obvious
+> symptom — LACT silently failing to apply the undervolt when its OD write races an
+> SMU resume. If you would rather not disable runtime PM system-wide, a per-card udev
+> rule does the same job: see
+> [Runtime PM breaks the undervolt](#runtime-pm-breaks-the-undervolt-failed-to-upload-overdrive-table-august-4-2026).
 
 ---
 
@@ -111,7 +115,7 @@ Hardware: 2× AMD R9700 (gfx1201), BDFs `0000:03:00.0` + `0000:0f:00.0`, vLLM 0.
 ### Tuned vs firmware-default comparison
 
 | Profile                             | total tok/s | output tok/s | runtime |
-| ----------------------------------- | ----------- | ------------ | ------- |
+|-------------------------------------|-------------|--------------|---------|
 | **Firmware defaults (no tuning)**   | **585.87**  | **65.10**    | 3m16s   |
 | Tuned (300 W, -50 mV, no MCLK OD)   | 560.38      | 62.26        | 3m25s   |
 | Tuned (300 W, MCLK OD=1350, -70 mV) | 559.98      | 62.22        | 3m25s   |
@@ -178,4 +182,94 @@ In other words, on this driver `tune_r9700_max.sh` is best run **without** `--me
 ### Editing `tune_r9700_max.sh` safely
 
 A `\` line continuation **cannot** be preceded by a commented-out flag inside the `exec` block. `# ...flag... \` ends the logical command because `\` inside a comment does **not** continue the line — bash sees `exec ... --gpus all` only and silently drops every flag after the first comment, with no error. To disable a flag, delete the line entirely; do not just prefix it with `#`.
+
+---
+
+## Runtime PM breaks the undervolt: "Failed to upload overdrive table!" (August 4, 2026)
+
+**Symptom.** With LACT managing the card, the kernel log repeats:
+
+```
+amdgpu 0000:05:00.0: Failed to upload overdrive table!
+amdgpu 0000:05:00.0: Failed to upload customized OD settings
+```
+
+LACT itself logs `configuration applied` for the same moment, so the failure is silent
+from userspace — and `pp_od_clk_voltage` still reads back the requested offset, which
+makes it *look* applied. (Same trap as the fan curve: a read-back is **not** proof of a
+successful SMU commit — see the fan-curve note in the root README.)
+
+**Root cause: the OD upload fails only when it lands during a resume from runtime
+suspend.** Correlating LACT's apply events against the kernel's
+`SMU is resumed successfully!` lines isolates it exactly:
+
+| time     | what happened                     | result             |
+|:---------|:----------------------------------|:-------------------|
+| 11:37:44 | apply at boot, card already awake | ✔ no error         |
+| 11:52:03 | apply **during** `SMU is resumed` | ✖ failed to upload |
+| 11:52:06 | apply, card already awake         | ✔ no error         |
+| 11:52:14 | apply **during** `SMU is resumed` | ✖ failed to upload |
+| 11:56:23 | apply **during** `SMU is resumed` | ✖ failed to upload |
+| 11:59:31 | apply with `power/control=on`     | ✔ no error         |
+
+The 11:52:06 row is the control case: same daemon, same config, but the card was already
+awake, so it succeeded. It is **not** every apply that fails — only the ones racing the
+SMU resume. Idle cards get suspended by runtime PM (`runtime_status: suspended`, D3hot),
+and while suspended most SMU-backed sysfs nodes return `Device or resource busy`
+(`power_dpm_force_performance_level`, `pp_dpm_sclk`, hwmon sensors) or hang.
+
+**Two fixes.** Both stop the card from suspending, so an OD write can never race a
+resume. The cost is that the card no longer parks in its low-power state — a spot check
+showed ~10 W suspended vs ~14 W awake-and-idle (single sample, not a careful power
+measurement).
+
+**A — udev rule (targeted, recommended).** Applies to this card only, leaves every other
+PCIe device's power management alone, and needs no kernel parameter or reboot-time
+cmdline change:
+
+```bash
+sudo tee /etc/udev/rules.d/99-amdgpu-r9700-no-runtime-pm.rules >/dev/null <<'EOF'
+# R9700 (Navi 48): disable runtime PM — otherwise LACT's OD-table write can land
+# during an SMU resume and fail ("Failed to upload overdrive table!")
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x1002", ATTR{device}=="0x7551", ATTR{power/control}="on"
+EOF
+sudo udevadm control --reload-rules
+```
+
+The `99-` prefix matters: it loads *after* the system's `60-autosuspend.rules`, so it wins.
+Verify the rule matches before rebooting (test mode does not write, it only reports):
+
+```bash
+udevadm test --action=add /sys/bus/pci/devices/0000:05:00.0 2>&1 | grep power/control
+# -> 99-amdgpu-r9700-no-runtime-pm.rules:3 ATTR{power/control}="on": ... skipping writing "on" ...
+```
+
+**B — `amdgpu.runpm=0` boot arg (global).** Simpler, but disables runtime PM for *every*
+amdgpu device and needs a reboot:
+
+```
+GRUB_CMDLINE_LINUX_DEFAULT="... amdgpu.runpm=0"
+```
+
+This is the same flag the [combined GRUB cmdline](#recommended-grub-cmdline-combined)
+already recommends for a different reason (`rocminfo` failing to detect the GPU) — the
+two symptoms share this one root cause.
+
+**Temporary test (no reboot, reverts on reboot):**
+
+```bash
+echo on | sudo tee /sys/bus/pci/devices/<BDF>/power/control
+sudo systemctl restart lactd
+journalctl -k -b | grep -i overdrive   # no new failures = confirmed
+```
+
+**Verifying the offset really took.** `rocm-smi --showvoltage` is useless here — on this
+card/driver it reports the *offset* (`30`), not VDDGFX. The practical check is the absence
+of `Failed to upload overdrive table!` after an apply on an awake card; the read-back
+alone is not sufficient.
+
+> **Note on `configuration applied`:** LACT logs that line only when reapplying after a
+> kernel DRM event. A fresh `systemctl restart lactd` does not log it (neither does the
+> boot-time start), so its absence is normal and is **not** evidence that nothing was
+> applied.
 
