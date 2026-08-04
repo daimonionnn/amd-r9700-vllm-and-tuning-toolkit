@@ -211,6 +211,26 @@ The June and August runs are both archived here with identical methodology, whic
 stronger position for any future claim than a subjective "it feels slow". Worth re-testing
 after some weeks of real load, and again before the warranty expires.
 
+### Raw telemetry (committed as evidence)
+
+`benchmark/results/` is otherwise gitignored; the `thermal_*` pairs are deliberately
+versioned so the numbers above stay reproducible and auditable. Averages below are over
+**all** active samples (>100 W), so they differ slightly from the script's headline figure,
+which averages only the last 30 % steady-state window.
+
+| file                      | test     | delta       | power | sclk     | prefill   | note                       |
+|:--------------------------|:---------|------------:|------:|---------:|----------:|:---------------------------|
+| `thermal_20260624_050223` | pp131072 | **47.4 °C** | 230 W | 2790 MHz | 297.3 t/s | **June — defective**       |
+| `thermal_20260804_170148` | pp131072 | **37.1 °C** | 297 W | 3057 MHz | 323.2 t/s | **August — after service** |
+| `thermal_20260624_045039` | pp98304  | 40.1 °C     | 250 W | 2840 MHz | 181.4 t/s | June, shallower prompt     |
+| `thermal_20260624_042714` | —        | 42.9 °C     | 254 W | 2730 MHz | —         | June, run aborted          |
+| `thermal_20260624_043932` | —        | 42.7 °C     | 257 W | 2739 MHz | —         | June, run aborted          |
+
+The first two rows are the like-for-like pair: same prompt depth, same model, same stock
+settings, one month apart. The two aborted June runs hit a VRAM OOM at the deepest ubatch
+(their logs keep the backtrace) — their telemetry is still valid up to the abort, which is
+why the deltas there already sit in the 42–43 °C range.
+
 ## Consequence for the TP=2 prefill benchmarks
 
 > **Historical, but the conclusion still holds.** The defect was present for every TP=2

@@ -41,9 +41,18 @@ vllm/docker/bench_llama_benchy_ab_patch.py
 Thumbs.db
 
 # Benchmark result logs (contain absolute paths)
-benchmark/results/
+# Note: "/*" ignores the contents, not the directory itself — a negation cannot
+# re-include a file whose parent directory is excluded.
+benchmark/results/*
 vllm/results/
 
 # Logs and temp files
 *.log
 *.tmp
+
+# ...except the deep-prefill thermal telemetry, which is kept as evidence: these
+# CSV/log pairs back the thermal-defect finding and its post-RMA retest in
+# docs/r9700-mem-vendor-bios-variance.md. Small (~15 KB each) and worth versioning.
+# Must come last so it also overrides the "*.log" rule above.
+!benchmark/results/thermal_*.csv
+!benchmark/results/thermal_*.log
