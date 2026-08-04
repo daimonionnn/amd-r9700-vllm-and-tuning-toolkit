@@ -140,6 +140,15 @@ Hardware: 2× AMD R9700 (gfx1201), BDFs `0000:03:00.0` + `0000:0f:00.0`, vLLM 0.
 - `power1_cap_max` advertises **330 W** but the SMU rejects any write above 300 W with `EIO ("Input/output error")`. **300 W is the real ceiling** on this card/firmware.
 - `amd_radeon_rdna_tuning.sh` now catches the EIO, warns, and falls back to default instead of aborting.
 
+> **Superseded (August 2026):** 330 W now applies cleanly on the surviving card —
+> `power1_cap` reads `330 W` and the card was measured drawing **393 W peak / ~320 W
+> average** under load, which a 300 W cap could not permit. Whether that is a firmware
+> or VBIOS change is unknown (the card had been through service). The EIO handling in
+> the script is harmless either way. See
+> [the undervolt sweep](#undervolt-reversal-it-now-helps-because-the-card-is-power-limited-august-4-2026)
+> for what raising it actually buys — under sustained load, very little: the card hits
+> the ~104 °C junction limit before the power limit.
+
 ### DPM (PowerPlay) table — actual reachable clocks
 
 ```
@@ -185,6 +194,94 @@ A `\` line continuation **cannot** be preceded by a commented-out flag inside th
 
 ---
 
+## Undervolt reversal: it now helps, because the card is power-limited (August 4, 2026)
+
+**This contradicts the May 30 finding above** ("firmware defaults beat the tuned profile
+by ~4.5 %", "the SMU shaves boost frequencies") and the June one ("throughput is flat
+across offsets"). Both were correct at the time. What changed is the hardware, not the
+driver.
+
+**Why the reversal makes sense.** Undervolting only buys throughput when a card is
+*power*-limited: fewer watts per MHz means more MHz fit in the same budget. In June this
+card was *thermally* limited — a defective cooler pinned it at 222 W, far below the 300 W
+cap, so lowering voltage had nothing to give back. After the cooler was fixed
+([retest](r9700-mem-vendor-bios-variance.md#post-rma-retest--the-defect-is-gone-august-4-2026))
+the card runs at ~295 W against its cap, and the undervolt pays.
+
+### Sweep (llama.cpp, Qwen3.6-27B-Q4_K_M, single GPU, `-r 1`)
+
+| config             | pp2048  | pp32768   | tg32  | max sclk |
+|:-------------------|--------:|----------:|------:|---------:|
+| stock 0 mV, 300 W  | 997.32  | 674.11    | 27.19 | —        |
+| −120 mV, 300 W     | 1093.61 | 734.24    | 27.54 | 3357 MHz |
+| −140 mV, 300 W     | 1106.69 | 743.07    | 27.75 | 3369 MHz |
+| −150 mV, 300 W     | 1113.28 | 746.89    | 27.75 | 3387 MHz |
+| −150 mV, **330 W** | 1131.60 | **crash** | —     | 3355 MHz |
+| −120 mV, **330 W** | 1113.69 | 747.97    | 27.78 | 3389 MHz |
+
+Gains flatten fast: stock → −120 mV is **+8.9 %** on pp32768, −120 → −140 adds +1.2 %,
+−140 → −150 adds +0.5 %. Beyond ~−120 mV the card is no longer voltage-limited.
+
+### Stability limit: −150 mV + 330 W crashes
+
+`−150 mV` alone was fine at 300 W. Raising the cap to 330 W (higher clocks → more voltage
+needed) made the *same* offset fail on the deeper prompt:
+
+```
+amdgpu 0000:05:00.0: [gfxhub] page fault (src_id:0 ring:24 vmid:8 pasid:165)
+  Process llama-bench ...  Faulty UTCL2 client ID: TCP (0x8)
+  PERMISSION_FAULTS: 0x3
+```
+
+A compute-pipe page fault is the classic undervolt-instability signature. Note `pp2048`
+had already passed in the same run — **short benchmarks do not prove stability**; it took
+the deeper `pp32768` to break it. Neither knob was at fault alone; the combination was.
+The process died but the GPU did not reset.
+
+### Sustained validation of −120 mV
+
+`benchmark/thermal-test.sh` (`pp131072`, ~10 min, hot card), against the same-day stock run:
+
+| metric             | stock 0 mV         | **−120 mV**             |
+|:-------------------|-------------------:|------------------------:|
+| prefill            | 323.22 t/s         | **348.02 t/s** (+7.7 %) |
+| core clock         | 3066 MHz           | **3303 MHz** (+7.7 %)   |
+| power              | 295.3 W            | 293.4 W                 |
+| junction           | 104.4 °C           | 104.4 °C                |
+| hotspot − edge     | 37.4 (peak 39)     | 38.4 (peak 41)          |
+| memory / mem clock | 76.5 °C / 1242 MHz | 76.2 °C / 1155 MHz      |
+
+**+237 MHz for the same power** is the undervolt working exactly as intended. Cooling is
+unaffected (delta still ~38 °C, nowhere near the defective 47 °C). Memory clock drops to
+1155 MHz — the SMU shifts budget into the core, and since prefill improves, that is a good
+trade.
+
+**The 330 W cap barely matters under sustained load.** This run was at 330 W, yet averaged
+293–301 W: the card hits the ~104 °C junction limit *before* the power limit. The +1.9 %
+that 330 W showed in one-minute tests does not survive a long run. 300 W is fine.
+
+### Recommended
+
+```yaml
+voltage_offset: -120     # validated short + 10 min sustained; ~90 % of the available gain
+power_cap: 300.0         # 330 W adds nothing once thermally limited
+performance_level: auto
+# no max_memory_clock — see the memory-OC section below
+```
+
+−150 mV is *not* recommended: +0.5 % over −140 mV, and no headroom left if anything else
+changes. Also note this card was unstable at −70 mV in June **while thermally defective** —
+a hot die needs more voltage, so the fixed cooler is likely what opened up the −120 mV
+range. Re-validate after any cooling change.
+
+> **Verify LACT settings actually applied.** During this session three separate LACT
+> changes (power cap, memory clock, voltage offset) did not reach the card despite the GUI
+> and `/etc/lact/config.yaml` showing them. Always confirm against sysfs:
+> `pp_od_clk_voltage` for the offset, `hwmon/*/power1_cap` for the cap, and `pp_dpm_mclk`
+> (not `OD_MCLK`) for memory.
+
+---
+
 ## Memory OC re-verified on the current stack — still capped, and it makes things worse (August 4, 2026)
 
 Re-check of the `OD_MCLK` question on the surviving Samsung card. Stack: kernel
@@ -216,12 +313,27 @@ collapse is a reaction to overreaching: 1300 is only 42 MHz above the 1258 ceili
 **any** `OD_MCLK` above the firmware DPM top, not how far above it goes. There is therefore
 no "safe" memory OC value to search for on this driver.
 
-**What was *not* reproduced:** a decode regression. `tg32` measured 28.12 t/s with the OC
-vs 27.19 t/s without — slightly *favouring* the OC, i.e. within single-run (`-r 1`) noise.
-The −20 % decode hit recorded in June came from vLLM TP=2 on two cards, a different stack,
-and today's llama.cpp runs neither confirm nor refute it. Prefill is unchanged either way
-(676.5 vs 674.1) because prefill is compute-bound, so it cannot show a memory-clock
-problem at all.
+**Prefill cannot show this problem.** It is unchanged across all three configs
+(676.5 / 676.4 / 674.1) because prefill is compute-bound. Only decode is memory-bound, and
+the first attempts at measuring it were inconclusive: `tg32` gave 28.12 t/s with the OC vs
+27.19 without, i.e. within single-run (`-r 1`) noise and slightly *favouring* the OC.
+
+**A later clean A/B did reproduce the decode regression.** Same undervolt (−120 mV),
+same cap (300 vs 299 W), memory OC the only variable:
+
+| config                  | pp2048  | pp32768 | tg32      | max mclk             |
+|:------------------------|--------:|--------:|----------:|:---------------------|
+| no memory OC            | 1093.61 | 734.24  | **27.54** | 1258 MHz (94 %)      |
+| `max_memory_clock` 1329 | 1100.53 | 728.26  | **25.72** | 1124 MHz (0 % @1258) |
+
+Decode drops **−6.6 %** while both prefill figures stay inside noise — exactly the shape
+predicted by a memory-clock cap. For scale, every other `tg32` measured that day landed in
+a 27.2–28.2 band; 25.72 sits clearly outside it. This is the same direction as the −20 %
+recorded for vLLM TP=2 in June, smaller because the stack and workload differ.
+
+Note the clock settled at **1124 MHz** here rather than the 875 MHz seen with 1300/1350 —
+the collapse does not land on a fixed value, but the top 1258 MHz step is unreachable in
+every case.
 
 **Verdict: no upside, a measurable downside.** Leave `OD_MCLK` alone. Re-test only if a
 DKMS release later than 6.19.4 restores replace-the-DPM-step semantics (TODO item 4).
