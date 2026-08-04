@@ -185,6 +185,51 @@ A `\` line continuation **cannot** be preceded by a commented-out flag inside th
 
 ---
 
+## Memory OC re-verified on the current stack — still capped, and it makes things worse (August 4, 2026)
+
+Re-check of the `OD_MCLK` question on the surviving Samsung card. Stack: kernel
+`7.0.0-28-generic`, **amdgpu DKMS 6.19.4** — i.e. the same DKMS build as the original
+finding, so no reason to expect different semantics. Confirmed: none.
+
+**The write is accepted and then ignored.** `m 1 1350` + commit `c` returned no error,
+and `OD_MCLK` read back `1: 1350MHz` — but `pp_dpm_mclk` was byte-identical to the
+baseline, still topping out at `5: 1258Mhz`. Reading `OD_MCLK` alone would make the OC
+look successful; only the DPM table (and the clock under load) tells the truth.
+
+**Under load it is worse than a no-op.** Same `pp32768` run, sampling `mclk` throughout:
+
+| config          | max mclk     | distribution across samples               | prefill   |
+|:----------------|-------------:|:------------------------------------------|----------:|
+| stock (default) | **1258 MHz** | **1258 MHz in 457 of 488 samples (94 %)** | 674.1 t/s |
+| `OD_MCLK` 1300  | **875 MHz**  | 875 (53 %), 96 (43 %), 772 (3 %)          | 676.4 t/s |
+| `OD_MCLK` 1350  | **875 MHz**  | 875 / 772 / 96 — **never reached 1258**   | 676.5 t/s |
+
+Stock holds the top memory step 94 % of the time. With either OC value applied it never
+got there in 30 samples — at a 94 % base rate that is not sampling noise. So writing an
+out-of-range `OD_MCLK` does not raise the ceiling; it **pins the memory clock ~30 % below
+it**. This reproduces the "Samsung collapses to ~772–875 MHz" behaviour recorded in
+[r9700-mem-vendor-bios-variance.md](r9700-mem-vendor-bios-variance.md#memory-overclock).
+
+**1300 behaves exactly like 1350**, which rules out the obvious hypothesis that the
+collapse is a reaction to overreaching: 1300 is only 42 MHz above the 1258 ceiling, 1350 is
+92 MHz above, and both land on the same 875 MHz cap with the same prefill. The trigger is
+**any** `OD_MCLK` above the firmware DPM top, not how far above it goes. There is therefore
+no "safe" memory OC value to search for on this driver.
+
+**What was *not* reproduced:** a decode regression. `tg32` measured 28.12 t/s with the OC
+vs 27.19 t/s without — slightly *favouring* the OC, i.e. within single-run (`-r 1`) noise.
+The −20 % decode hit recorded in June came from vLLM TP=2 on two cards, a different stack,
+and today's llama.cpp runs neither confirm nor refute it. Prefill is unchanged either way
+(676.5 vs 674.1) because prefill is compute-bound, so it cannot show a memory-clock
+problem at all.
+
+**Verdict: no upside, a measurable downside.** Leave `OD_MCLK` alone. Re-test only if a
+DKMS release later than 6.19.4 restores replace-the-DPM-step semantics (TODO item 4).
+
+Reverting is `r` + `c` to `pp_od_clk_voltage`; verify with `pp_dpm_mclk`, not `OD_MCLK`.
+
+---
+
 ## Runtime PM breaks the undervolt: "Failed to upload overdrive table!" (August 4, 2026)
 
 **Symptom.** With LACT managing the card, the kernel log repeats:
