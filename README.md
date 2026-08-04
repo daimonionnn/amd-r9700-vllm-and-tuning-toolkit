@@ -2,20 +2,28 @@
 
 ## Project status
 
-**On hold (2026-07).** This project targeted a specific 2× R9700 rig that no longer
-exists as a unit: the second card (Samsung/F40) turned out to have a **factory
-thermal-interface defect** and has been returned on a warranty/RMA claim, and the
-healthy first card (Hynix/F50) was sold. Without the hardware the tuning and
-benchmarks can't be re-run or improved further.
+**On hold (2026-08).** This project targeted a 2× R9700 rig that no longer exists as a
+pair. The second card (Samsung/F40) went out on a warranty claim for a thermal-interface
+defect and spent **nearly a month** in service; with the rig down to one card for that
+long, the first card (Hynix/F50) was sold.
 
-It may resume if the RMA card is repaired/replaced and a second card is re-acquired.
-In the meantime the docs, scripts and findings are kept as a reference. Open ideas for
-when it restarts live in [docs/TODO.md](docs/TODO.md).
+The serviced card is **back and now behaves like a normal, healthy R9700**. The claim was
+rejected as "fault not reproduced", and a re-run of the identical deep-prefill test
+confirms the defect is gone: hotspot−edge delta 47 → 37.4 °C, full 300 W budget, 323 t/s.
+Whether it was quietly repasted before testing or the mount corrected itself during
+handling is not something that can be determined from the outside. Details:
+[Post-RMA retest](docs/r9700-mem-vendor-bios-variance.md#post-rma-retest--the-defect-is-gone-august-4-2026).
+
+So the current setup is **a single Gigabyte Radeon AI PRO R9700**. Single-card tuning and
+benchmarking still work, but the multi-GPU parts of this toolkit (TP=2 / PP=2 vLLM,
+dual-card scaling) can't be exercised or improved until a second card is acquired — which
+may happen in future. Open ideas for when that happens live in
+[docs/TODO.md](docs/TODO.md).
 
 > **Reading the benchmark numbers?** The headline dual-GPU **TP=2 prefill
-> (~1841–1894 t/s)** is a *lower bound* — the defective card2 throttled and gated the
-> pair under TP=2. A healthy pair should reach ~1965 t/s from the hardware alone;
-> details in
+> (~1841–1894 t/s)** is a *lower bound* — it was measured while the second card was still
+> throttling and gating the pair. A healthy pair should reach ~1965 t/s from the hardware
+> alone; details in
 > [docs/r9700-mem-vendor-bios-variance.md](docs/r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks).
 
 ## Layout
@@ -86,7 +94,7 @@ selector for choosing which RDNA GPUs to act on. The selector understands
 several forms — pick whichever is most convenient:
 
 | Form                               | Meaning                                           |
-| ---------------------------------- | ------------------------------------------------- |
+|------------------------------------|---------------------------------------------------|
 | `--gpus all` *(default)*           | Every detected discrete RDNA GPU                  |
 | `--gpus 1`                         | First RDNA GPU only (PCI-BDF order)               |
 | `--gpus 2`                         | First N RDNA GPUs                                 |
@@ -186,7 +194,7 @@ The R9700 (Navi 48) does **not** use the standard `hwmon/pwm1_enable` interface.
 ### Default fan curve (`tune_r9700.sh`)
 
 | Point | Hotspot temp | Fan speed |
-| ----- | ------------ | --------- |
+|-------|--------------|-----------|
 | 0     | 25 °C        | 25%       |
 | 1     | 50 °C        | 25%       |
 | 2     | 70 °C        | 30%       |
@@ -221,13 +229,13 @@ acoustic targets. These are exposed as separate `gpu_od/fan_ctrl/*` nodes and
 can be set independently (each is range-validated against the node's own
 `OD_RANGE` and committed automatically):
 
-| Flag                        | Node                            | Meaning                                                               |
-| --------------------------- | ------------------------------- | --------------------------------------------------------------------- |
-| `--fan-minimum-pwm PCT`     | `fan_minimum_pwm`               | Lowest fan duty the SMU may use (this card's floor is 25%).           |
-| `--fan-target-temp C`       | `fan_target_temperature`        | Temp the SMU holds; above it the fan ramps toward the acoustic limit. |
-| `--acoustic-target-rpm RPM` | `acoustic_target_rpm_threshold` | RPM the SMU stays under until the target temp is exceeded.            |
-| `--acoustic-limit-rpm RPM`  | `acoustic_limit_rpm_threshold`  | Max RPM the SMU ramps to at/above the target temp.                    |
-| `--fan-zero-rpm 0\|1`       | `fan_zero_rpm_enable`           | Allow the fan to fully stop when cool (not supported on every SKU).   |
+| Flag                        | Node                            | Meaning |  |
+| --------------------------- | ------------------------------- | --------------------------------------------------------------------- |  |
+| `--fan-minimum-pwm PCT`     | `fan_minimum_pwm`               | Lowest fan duty the SMU may use (this card's floor is 25%). |  |
+| `--fan-target-temp C`       | `fan_target_temperature`        | Temp the SMU holds; above it the fan ramps toward the acoustic limit. |  |
+| `--acoustic-target-rpm RPM` | `acoustic_target_rpm_threshold` | RPM the SMU stays under until the target temp is exceeded. |  |
+| `--acoustic-limit-rpm RPM`  | `acoustic_limit_rpm_threshold`  | Max RPM the SMU ramps to at/above the target temp. |  |
+| `--fan-zero-rpm 0\          | 1`                              | `fan_zero_rpm_enable` | Allow the fan to fully stop when cool (not supported on every SKU). |
 
 These combine with `--fan-curve` (or each other). Example — a curve that also
 lets the fan idle-stop and holds a higher target temperature before ramping:

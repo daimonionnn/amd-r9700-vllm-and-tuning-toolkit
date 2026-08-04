@@ -1,20 +1,30 @@
 # TODO — open optimization ideas & next steps
 
-The project is **on hold** (see the [root README](../README.md#project-status)) —
-most of these need the 2× R9700 hardware back before they can be done. They are
+The project is **on hold** (see the [root README](../README.md#project-status)) — the rig
+is down to a single R9700, so anything multi-GPU needs a second card first. They are
 ordered roughly by expected payoff. Each notes whether it is **blocked** on
 hardware or **doable now** on paper.
 
-## 1. Re-baseline on a healthy pair (biggest win) — *blocked*
-The headline TP=2 prefill (~1841–1894 t/s) was gated by card2's factory
-thermal-interface defect. Before anything else:
-- Complete the card2 RMA (or repaste/reseat its cooler) and re-baseline TP=2.
+## 1. Re-baseline on a healthy pair (biggest win) — *needs a second card*
+The headline TP=2 prefill (~1841–1894 t/s) was gated by the second card's
+thermal-interface defect. **That card is now fixed** (verified August 2026:
+delta 37.4 °C, full 300 W, 323 t/s — see
+[Post-RMA retest](r9700-mem-vendor-bios-variance.md#post-rma-retest--the-defect-is-gone-august-4-2026)),
+so the only thing still missing is a second R9700.
+- Re-baseline TP=2 once a second card is available.
 - Expect **~1965 t/s prefill from the hardware alone** (~6–10 %), *before* any
   software tuning is stacked on top.
 - **Gate the measurement:** confirm both cards hold full clocks at the 300 W cap and
   a sane hotspot−edge delta (`benchmark/thermal-test.sh` / `thermal-log.sh`) so a
   thermal defect can't silently cap the result again.
 - Background: [r9700-mem-vendor-bios-variance.md](r9700-mem-vendor-bios-variance.md#consequence-for-the-tp2-prefill-benchmarks).
+
+## 1b. Re-test the repaired card periodically — *doable now*
+If the cooler mount was marginal rather than properly redone, the defect can come back.
+Re-run `benchmark/thermal-test.sh` after a few weeks of real load, and again before the
+warranty expires. Watch the hotspot−edge delta: **~37 °C is healthy, drifting toward
+~47 °C means it is returning.** Two identically-run datasets (June defective / August
+healthy) are already archived, so a third makes a strong warranty case.
 
 ## 2. Self-tune the missing FP8 block-GEMM configs — *blocked (needs GPU)*
 The one un-pulled software lever from
