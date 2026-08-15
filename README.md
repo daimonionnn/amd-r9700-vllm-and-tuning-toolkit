@@ -307,3 +307,21 @@ Validated on two systems (the dual-GPU tooling and benchmarks have been run on b
 > The migration from the bifurcated AMD rig to the full-PCIe-5.0 Intel rig made
 > vLLM **TP=2** viable again (~3–5.5× prefill recovery) — see
 > [benchmark/R9700_benchmarks.md](benchmark/R9700_benchmarks.md#vllm-tp2--intel-z890-platform-migration-june-17-2026).
+
+## A note on risk
+
+These scripts write to `amdgpu` overdrive sysfs nodes — voltage offsets, clock limits,
+power caps and fan curves. That is what they are for, but it means they can make a GPU
+unstable, and undervolting in particular fails in ways that are easy to miss: a card can
+pass a short benchmark and then fault under sustained load
+([an example, with the kernel trace](docs/r9700-oc-uv-findings.md#stability-limit-150-mv--330-w-crashes)).
+Values that work on the cards here may not work on yours — silicon, VBIOS and cooling all
+vary, even between two cards of the same model
+([measured](docs/r9700-mem-vendor-bios-variance.md)). Validate any setting under a long,
+hot run before relying on it, and check whether tuning affects your warranty.
+
+## License
+
+[MIT](LICENSE) — © 2026 Daimonion. Use it however you like; please keep the copyright
+notice. Community findings referenced in `docs/` belong to their original authors and are
+credited inline.

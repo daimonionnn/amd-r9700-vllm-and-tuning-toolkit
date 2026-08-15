@@ -7,7 +7,9 @@ BASE_IMAGE="aml731/vllm-aiter:v0.20.2"
 CANDIDATE_IMAGE="aml731/vllm-aiter-v20.2:v0.20.2" # Assuming this based on Reddit user post
 CONTAINER_NAME="vllm-llama-benchy-test"
 SERVED_MODEL="Qwen/Qwen3.6-27B-FP8"
-MODEL_PATH="/home/matt/.cache/huggingface/hub/models--Qwen--Qwen3.6-27B-FP8"
+# Resolve the HF cache the same way huggingface_hub does: HF_HOME if set,
+# otherwise ~/.cache/huggingface.  Override MODEL_PATH to point elsewhere.
+MODEL_PATH="${MODEL_PATH:-${HF_HOME:-$HOME/.cache/huggingface}/hub/models--Qwen--Qwen3.6-27B-FP8}"
 OUT_DIR="$(pwd)/results/llama_benchy_$(date +%Y%m%d_%H%M%S)"
 
 mkdir -p "$OUT_DIR"

@@ -2,7 +2,7 @@ ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32624 MiB):
   Device 0: AMD Radeon AI PRO R9700, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 32624 MiB
 | model                          |       size |     params | backend    | ngl |            test |                  t/s |
 | ------------------------------ | ---------: | ---------: | ---------- | --: | --------------: | -------------------: |
-/home/matt/development/AMD-RDNA-Toolkit/benchmark/llama.cpp-src/ggml/src/ggml-cuda/ggml-cuda.cu:102: ROCm error
+/home/USER/development/AMD-RDNA-Toolkit/benchmark/llama.cpp-src/ggml/src/ggml-cuda/ggml-cuda.cu:102: ROCm error
 ⚠️ warning: The current terminal doesn't support styling.  Styled output might not appear as expected.
 [New LWP 49514]
 [New LWP 49513]
@@ -24,19 +24,19 @@ __syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:5
 75	in ./nptl/cancellation.c
 #3  0x00007e0138d1cdcf in __GI___wait4 (pid=<optimized out>, stat_loc=<optimized out>, options=<optimized out>, usage=<optimized out>) at ../sysdeps/unix/sysv/linux/wait4.c:30
 ⚠️ warning: 30	../sysdeps/unix/sysv/linux/wait4.c: No such file or directory
-#4  0x00007e013d979876 in ggml_print_backtrace () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-base.so.0
-#5  0x00007e013d98feb9 in ggml_abort () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-base.so.0
-#6  0x00007e013c9c3082 in ggml_cuda_error(char const*, char const*, char const*, int, char const*) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
-#7  0x00007e013c9d9f10 in ggml_cuda_pool_leg::alloc(unsigned long, unsigned long*) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
-#8  0x00007e013c9d2832 in ggml_cuda_mul_mat_batched_cublas(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
-#9  0x00007e013c9d1db4 in ggml_cuda_mul_mat(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
-#10 0x00007e013c9cd16f in ggml_cuda_graph_evaluate_and_capture(ggml_backend_cuda_context*, ggml_cgraph*, bool, bool, void const*) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
-#11 0x00007e013c9c9a96 in ggml_backend_cuda_graph_compute(ggml_backend*, ggml_cgraph*) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
-#12 0x00007e013d99a658 in ggml_backend_sched_graph_compute_async () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-base.so.0
-#13 0x00007e013d71d541 in llama_context::graph_compute(ggml_cgraph*, bool) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
-#14 0x00007e013d71d0e9 in llama_context::process_ubatch(llama_ubatch const&, llm_graph_type, llama_memory_context_i*, ggml_status&) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
-#15 0x00007e013d71e84e in llama_context::decode(llama_batch const&) () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
-#16 0x00007e013d72345b in llama_decode () from /home/matt/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
+#4  0x00007e013d979876 in ggml_print_backtrace () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-base.so.0
+#5  0x00007e013d98feb9 in ggml_abort () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-base.so.0
+#6  0x00007e013c9c3082 in ggml_cuda_error(char const*, char const*, char const*, int, char const*) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
+#7  0x00007e013c9d9f10 in ggml_cuda_pool_leg::alloc(unsigned long, unsigned long*) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
+#8  0x00007e013c9d2832 in ggml_cuda_mul_mat_batched_cublas(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
+#9  0x00007e013c9d1db4 in ggml_cuda_mul_mat(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
+#10 0x00007e013c9cd16f in ggml_cuda_graph_evaluate_and_capture(ggml_backend_cuda_context*, ggml_cgraph*, bool, bool, void const*) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
+#11 0x00007e013c9c9a96 in ggml_backend_cuda_graph_compute(ggml_backend*, ggml_cgraph*) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-hip.so.0
+#12 0x00007e013d99a658 in ggml_backend_sched_graph_compute_async () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libggml-base.so.0
+#13 0x00007e013d71d541 in llama_context::graph_compute(ggml_cgraph*, bool) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
+#14 0x00007e013d71d0e9 in llama_context::process_ubatch(llama_ubatch const&, llm_graph_type, llama_memory_context_i*, ggml_status&) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
+#15 0x00007e013d71e84e in llama_context::decode(llama_batch const&) () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
+#16 0x00007e013d72345b in llama_decode () from /home/USER/development/amd-r9700-vllm-and-tuning-toolkit/llm/llama.cpp-rocm/lib/libllama.so.0
 #17 0x000056e0f8a668ab in test_prompt(llama_context*, int, int, int) ()
 #18 0x000056e0f8a61289 in main ()
 [Inferior 1 (process 49505) detached]

@@ -17,7 +17,9 @@ User=root
 ExecStartPre=/bin/sh -c 'echo "TOOLKIT_DIR=$(getent passwd 1000 | cut -d: -f6)/development/amd-r9700-vllm-and-tuning-toolkit" > /run/r9700-tune.env'
 ExecStartPre=/bin/sleep 3
 EnvironmentFile=/run/r9700-tune.env
-ExecStart=${TOOLKIT_DIR}/tuning/tune_r9700.sh
+# ExecStart must begin with an absolute path — systemd rejects a leading
+# variable — so the shell expands TOOLKIT_DIR for us.
+ExecStart=/bin/sh -c 'exec "${TOOLKIT_DIR}/tuning/tune_r9700.sh"'
 # Remain in the journal so the result is visible via: journalctl -u r9700-tune
 RemainAfterExit=yes
 
